@@ -11,7 +11,6 @@ module Heist.Extra.Splices.Pandoc.Render (
 import Data.Map.Strict qualified as Map
 import Data.Map.Syntax ((##))
 import Data.Text qualified as T
-import Emanote.Pandoc.Markdown.Syntax.WikiLink qualified as WL
 import Heist qualified as H
 import Heist.Extra (runCustomNode)
 import Heist.Extra.Splices.Pandoc.Attr (concatAttr, rpAttr)
@@ -23,6 +22,7 @@ import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
+import Text.Pandoc.Walk as W
 import Text.XmlHtml qualified as X
 
 renderPandocWith :: RenderCtx -> Pandoc -> HI.Splice Identity
@@ -223,7 +223,11 @@ rpInline' ctx@RenderCtx {..} i = case i of
     one . X.Element "a" attrs <$> foldMapM (rpInline ctx) is
   B.Image attr is (url, tit) -> do
     let attrs =
-          catMaybes [pure ("src", url), guard (not $ T.null tit) >> pure ("title", tit), pure ("alt", WL.plainify is)]
+          catMaybes
+            [ pure ("src", url)
+            , guard (not $ T.null tit) >> pure ("title", tit)
+            , pure ("alt", plainify is)
+            ]
             <> rpAttr (rewriteClass ctx attr)
     pure $ one . X.Element "img" attrs $ mempty
   B.Note _bs -> do
@@ -269,3 +273,19 @@ rawNode :: Text -> Text -> [X.Node]
 rawNode wrapperTag s =
   one . X.Element wrapperTag (one ("xmlhtmlRaw", "")) $
     one . X.TextNode $ s
+
+-- | Convert Pandoc AST inlines to raw text.
+plainify :: [B.Inline] -> Text
+plainify = W.query $ \case
+  B.Str x -> x
+  B.Code _attr x -> x
+  B.Space -> " "
+  B.SoftBreak -> " "
+  B.LineBreak -> " "
+  -- TODO: if fmt is html, we should strip the html tags
+  B.RawInline _fmt s -> s
+  -- Ignore "wrapper" inlines like span.
+  B.Span _ _ -> ""
+  -- TODO: How to wrap math stuff here?
+  B.Math _mathTyp s -> s
+  _ -> ""
