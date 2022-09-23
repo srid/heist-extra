@@ -1,5 +1,6 @@
 # heist-extra
 
+Extensions on top of [heist](https://srid.ca/heist-start), that are especially useful for [Ema](https://ema.srid.ca/) apps.
 
 ## Getting Started
 
