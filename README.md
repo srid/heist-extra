@@ -1,4 +1,4 @@
-# haskell-template
+# heist-extra
 
 Get a Haskell development environment up and running quickly. Thanks to Nix, this template is optimized for a fully reproducible and friendly development environment. It is based on:
 
@@ -12,7 +12,7 @@ Get a Haskell development environment up and running quickly. Thanks to Nix, thi
 
 *tldr: Install Nix, enable Flakes, open in VSCode and run `bin/run`.*
 
-For details, see: https://srid.ca/haskell-template/start
+For details, see: https://srid.ca/heist-extra/start
 
 ## Tips
 
@@ -20,11 +20,11 @@ For details, see: https://srid.ca/haskell-template/start
 - Run `nix --option sandbox false build .#check -L` to run the flake checks.
 - Run `treefmt` in nix shell to autoformat the project. This uses [treefmt](https://github.com/numtide/treefmt), which uses `./treefmt.toml` (where fourmolu and nixpkgs-fmt are specified).
 - Run `bin/hoogle` to start Hoogle with packages in your cabal file.
-- Run the application without installing: `nix run github:srid/haskell-template` (or `nix run .` from checkout)
+- Run the application without installing: `nix run github:srid/heist-extra` (or `nix run .` from checkout)
 - Common workflows
-  - Adding tests: http://srid.ca/haskell-template/tests
-  - Adding Garnix CI: http://srid.ca/haskell-template/garnix
+  - Adding tests: http://srid.ca/heist-extra/tests
+  - Adding Garnix CI: http://srid.ca/heist-extra/garnix
 
 ## Discussions
 
-Got questions? Ideas? Suggestions? Post them here: https://github.com/srid/haskell-template/discussions
+Got questions? Ideas? Suggestions? Post them here: https://github.com/srid/heist-extra/discussions
