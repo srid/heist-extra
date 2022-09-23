@@ -1,0 +1,96 @@
+{
+  "nodes": {
+    "check-flake": {
+      "locked": {
+        "lastModified": 1662502605,
+        "narHash": "sha256-jAT55UhabAxLAVGanxjnNdzH2/oX2ZjLsL4i2jPIP+g=",
+        "owner": "srid",
+        "repo": "check-flake",
+        "rev": "48a17393ed4fcd523399d6602c283775b5127295",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "check-flake",
+        "type": "github"
+      }
+    },
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1663071030,
+        "narHash": "sha256-vqdGU5iR2nKiSH6Z0bhNAwg/6szAicXaopv7lpMRNRg=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "89cce5852d100df3d815c3c4a3fd39e55b3e1bfc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "haskell-flake": {
+      "locked": {
+        "lastModified": 1663188216,
+        "narHash": "sha256-/ZuI4EUxiMge3mb1alFebLsXqqWrfgsAzeM4VfP+uAs=",
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "rev": "4c6394586f7f9f0596f4822bfe14222fcc07f813",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1663419078,
+        "narHash": "sha256-cxEeMnaTGMTeDAvXnZmqcF50qoyJOsQENhYxSnW9ZMs=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "0cfb3c002b61807ca0bab3efe514476bdf2e5478",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "check-flake": "check-flake",
+        "flake-parts": "flake-parts",
+        "haskell-flake": "haskell-flake",
+        "nixpkgs": "nixpkgs",
+        "treefmt-flake": "treefmt-flake"
+      }
+    },
+    "treefmt-flake": {
+      "locked": {
+        "lastModified": 1660850981,
+        "narHash": "sha256-Y2rt0W0ZnfVgH5mnuAkU/5gJGSbjk5NbAwcuLDONHgI=",
+        "owner": "srid",
+        "repo": "treefmt-flake",
+        "rev": "49306df9084ffbd73102e6002241e1f14812f0fe",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "treefmt-flake",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
