@@ -11,5 +11,5 @@ For details, see: https://srid.ca/heist-extra/start
 
 | Example                                   | Use cases                                  |
 | ----------------------------------------- | ------------------------------------------ |
-| https://github.com/EmaApps/timedot-invoie | Template file management                   |
+| https://github.com/EmaApps/timedot-invoice | Template file management                   |
 | https://github.com/EmaApps/emanote        | Template file management; Pandoc rendering |
