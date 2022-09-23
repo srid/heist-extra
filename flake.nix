@@ -24,7 +24,9 @@
             inherit (pkgs)
               treefmt;
           } // config.treefmt.formatters;
-          # overrides = self: super: {}
+          overrides = self: super: with pkgs.haskell.lib; {
+            heist-emanote = dontCheck (doJailbreak (unmarkBroken super.heist-emanote)); # Tests are broken.
+          };
           enableHLSCheck = true;
         };
         treefmt.formatters = {

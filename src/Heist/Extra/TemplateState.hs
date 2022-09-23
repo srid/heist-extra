@@ -4,14 +4,13 @@
 -- Consider first the full practical range of template patterns,
 -- https://softwaresimply.blogspot.com/2011/04/looping-and-control-flow-in-heist.html
 
-module Heist.Extra.TemplateState
-  ( TemplateState,
-    TemplateName,
-    addTemplateFile,
-    removeTemplateFile,
-    renderHeistTemplate,
-  )
-where
+module Heist.Extra.TemplateState (
+  TemplateState,
+  TemplateName,
+  addTemplateFile,
+  removeTemplateFile,
+  renderHeistTemplate,
+) where
 
 import Control.Monad.Except (MonadError (throwError), runExcept)
 import Data.ByteString.Builder (toLazyByteString)
@@ -24,7 +23,6 @@ import Heist qualified as H
 import Heist.Common qualified as H
 import Heist.Internal.Types qualified as HT
 import Heist.Interpreted qualified as HI
-import Relude
 import System.FilePath (splitExtension)
 import Text.XmlHtml qualified as XmlHtml
 

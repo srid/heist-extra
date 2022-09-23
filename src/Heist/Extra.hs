@@ -5,7 +5,6 @@ import Heist qualified as H
 import Heist.Common qualified as H
 import Heist.Internal.Types qualified as HT
 import Heist.Interpreted qualified as HI
-import Relude
 import Text.XmlHtml qualified as X
 
 -- | Useful for running a splice against an arbitrary node (such as that pulled from pandoc.tpl)

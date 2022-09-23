@@ -1,38 +1,37 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Heist.Extra.Splices.Pandoc.Ctx
-  ( RenderCtx (..),
-    mkRenderCtx,
-    emptyRenderCtx,
-    rewriteClass,
-    ctxSansCustomSplicing,
-    concatSpliceFunc,
-  )
-where
+module Heist.Extra.Splices.Pandoc.Ctx (
+  RenderCtx (..),
+  mkRenderCtx,
+  emptyRenderCtx,
+  rewriteClass,
+  ctxSansCustomSplicing,
+  concatSpliceFunc,
+) where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
 import Heist qualified as H
 import Heist.Extra.Splices.Pandoc.Attr (concatAttr)
 import Heist.Interpreted qualified as HI
-import Relude
 import Text.Pandoc.Builder qualified as B
 import Text.XmlHtml qualified as X
 
--- | The configuration context under which we must render a `Pandoc` document
--- using the given Heist template.
+{- | The configuration context under which we must render a `Pandoc` document
+ using the given Heist template.
+-}
 data RenderCtx = RenderCtx
   { -- The XML node which contains individual AST rendering definitions
     -- This corresponds to pandoc.tpl
-    rootNode :: Maybe X.Node,
-    -- Attributes for a given AST node.
-    bAttr :: B.Block -> B.Attr,
-    iAttr :: B.Inline -> B.Attr,
-    -- Class attribute rewrite rules
-    classMap :: Map Text Text,
-    -- Custom render functions for AST nodes.
-    blockSplice :: B.Block -> Maybe (HI.Splice Identity),
-    inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
+    rootNode :: Maybe X.Node
+  , -- Attributes for a given AST node.
+    bAttr :: B.Block -> B.Attr
+  , iAttr :: B.Inline -> B.Attr
+  , -- Class attribute rewrite rules
+    classMap :: Map Text Text
+  , -- Custom render functions for AST nodes.
+    blockSplice :: B.Block -> Maybe (HI.Splice Identity)
+  , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
   }
 
 mkRenderCtx ::
@@ -78,15 +77,15 @@ emptyRenderCtx =
 ctxSansCustomSplicing :: RenderCtx -> RenderCtx
 ctxSansCustomSplicing ctx =
   ctx
-    { blockSplice = const Nothing,
-      inlineSplice = const Nothing
+    { blockSplice = const Nothing
+    , inlineSplice = const Nothing
     }
 
 concatSpliceFunc :: Alternative f => (t -> f a) -> (t -> f a) -> t -> f a
 concatSpliceFunc f g x =
   asum
-    [ f x,
-      g x
+    [ f x
+    , g x
     ]
 
 rewriteClass :: RenderCtx -> B.Attr -> B.Attr
