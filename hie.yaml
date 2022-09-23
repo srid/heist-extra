@@ -1,4 +1,4 @@
 cradle:
   cabal:
     - path: "src"
-      component: "exe:heist-extra"
+      component: "lib:heist-extra"
