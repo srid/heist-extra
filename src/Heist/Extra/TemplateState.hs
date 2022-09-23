@@ -1,9 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
 
--- TODO: Eventually move `Heist.Extra` to its own library
--- Consider first the full practical range of template patterns,
--- https://softwaresimply.blogspot.com/2011/04/looping-and-control-flow-in-heist.html
-
 module Heist.Extra.TemplateState (
   TemplateState,
   TemplateName,
@@ -29,6 +25,7 @@ import Text.XmlHtml qualified as XmlHtml
 
 type TemplateName = ByteString
 
+-- | Holds a set of Heist template files that are importing one another.
 data TemplateState = TemplateState (H.HeistState Identity) TemplateErrors
 
 instance Default TemplateState where
