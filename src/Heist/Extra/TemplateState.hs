@@ -17,7 +17,6 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
 import GHC.IO.Unsafe (unsafePerformIO)
 import Heist qualified as H
-import Heist.Common qualified as H
 import Heist.Internal.Types qualified as HT
 import Heist.Interpreted qualified as HI
 import System.FilePath (splitExtension)
@@ -77,7 +76,7 @@ addTemplateFile fp (tmplName -> name) s tmplSt =
 
 removeTemplate :: HasCallStack => TemplateName -> TemplateState -> TemplateState
 removeTemplate name (TemplateState st errs) =
-  let tpath = H.splitPathWith '/' name
+  let tpath = H.splitTemplatePath name
       newSt = st {HT._templateMap = HM.delete tpath (HT._templateMap st)}
    in TemplateState newSt (clearError name errs)
 

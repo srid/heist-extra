@@ -50,6 +50,23 @@
         "type": "github"
       }
     },
+    "heist": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1668273511,
+        "narHash": "sha256-VgrNndVrkLSEICrui7ClJoe1W8bbM2kHneDwyql9cWg=",
+        "owner": "srid",
+        "repo": "heist",
+        "rev": "d1f9c834b67dfc29f7da9d5e4d8bf6d83ddd5e8a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "ref": "expose-tpath",
+        "repo": "heist",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1663419078,
@@ -71,6 +88,7 @@
         "check-flake": "check-flake",
         "flake-parts": "flake-parts",
         "haskell-flake": "haskell-flake",
+        "heist": "heist",
         "nixpkgs": "nixpkgs",
         "treefmt-flake": "treefmt-flake"
       }

@@ -2,7 +2,6 @@ module Heist.Extra where
 
 import Data.Text qualified as T
 import Heist qualified as H
-import Heist.Common qualified as H
 import Heist.Internal.Types qualified as HT
 import Heist.Interpreted qualified as HI
 import Text.XmlHtml qualified as X
