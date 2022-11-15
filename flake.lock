@@ -53,16 +53,15 @@
     "heist": {
       "flake": false,
       "locked": {
-        "lastModified": 1668273511,
-        "narHash": "sha256-VgrNndVrkLSEICrui7ClJoe1W8bbM2kHneDwyql9cWg=",
-        "owner": "srid",
+        "lastModified": 1668478922,
+        "narHash": "sha256-HVIRUx90r0pvJKfLU6fM51/SdzvNOzv0466xIOeSFlo=",
+        "owner": "snapframework",
         "repo": "heist",
-        "rev": "d1f9c834b67dfc29f7da9d5e4d8bf6d83ddd5e8a",
+        "rev": "a23f0b5d70556742644189d71d694f379738cdbc",
         "type": "github"
       },
       "original": {
-        "owner": "srid",
-        "ref": "expose-tpath",
+        "owner": "snapframework",
         "repo": "heist",
         "type": "github"
       }

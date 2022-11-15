@@ -71,7 +71,7 @@ common shared
     , base          >=4.13.0.0 && <=4.18.0.0
     , data-default
     , filepath
-    , heist
+    , heist         >=1.1.1.0
     , map-syntax
     , mtl
     , pandoc-types

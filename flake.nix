@@ -8,7 +8,7 @@
     treefmt-flake.url = "github:srid/treefmt-flake";
     check-flake.url = "github:srid/check-flake";
 
-    heist.url = "github:srid/heist/expose-tpath";
+    heist.url = "github:snapframework/heist"; # Waiting for 1.1.1.0 on nixpkgs cabal hashes
     heist.flake = false;
   };
 
