@@ -68,14 +68,14 @@ common shared
     ViewPatterns
 
   build-depends:
-    , base           >=4.13.0.0 && <=4.18.0.0
+    , base          >=4.13.0.0 && <=4.18.0.0
     , data-default
     , filepath
-    , heist-emanote  >=1.2.1
+    , heist         >=1.1.1.0
     , map-syntax
     , mtl
     , pandoc-types
-    , relude         >=1.0
+    , relude        >=1.0
     , xmlhtml
 
   hs-source-dirs:     src
