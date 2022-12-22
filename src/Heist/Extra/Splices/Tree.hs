@@ -10,7 +10,7 @@ treeSplice ::
   forall a sortKey.
   (Ord sortKey) =>
   -- | How to sort children
-  (NonEmpty a -> sortKey) ->
+  (NonEmpty a -> [Tree a] -> sortKey) ->
   -- | Input tree
   [Tree a] ->
   -- | How to render a (sub-)tree root
@@ -19,14 +19,16 @@ treeSplice ::
 treeSplice =
   go []
   where
-    go :: [a] -> (NonEmpty a -> sortKey) -> [Tree a] -> (NonEmpty a -> [Tree a] -> H.Splices (HI.Splice Identity)) -> HI.Splice Identity
+    go :: [a] -> (NonEmpty a -> [Tree a] -> sortKey) -> [Tree a] -> (NonEmpty a -> [Tree a] -> H.Splices (HI.Splice Identity)) -> HI.Splice Identity
     go pars sortKey trees childSplice = do
       let extendPars x = maybe (one x) (<> one x) $ nonEmpty pars
-      flip foldMapM (sortOn (sortKey . extendPars . rootLabel) trees) $ \(Node lbl children) -> do
+      let sorter x = sortKey (extendPars $ rootLabel x) (subForest x)
+      flip foldMapM (sortOn sorter trees) $ \(Node lbl children) -> do
         HI.runChildrenWith $ do
           let herePath = extendPars lbl
           childSplice herePath children
           "has-children" ## Heist.ifElseISplice (not . null $ children)
-          let childrenSorted = sortOn (sortKey . (herePath <>) . one . rootLabel) children
+          let childrenSorter x = sortKey (herePath <> one (rootLabel x)) (subForest x)
+          let childrenSorted = sortOn childrenSorter children
           "children"
             ## go (toList herePath) sortKey childrenSorted childSplice
