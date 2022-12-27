@@ -5,7 +5,8 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
-    treefmt-flake.url = "github:srid/treefmt-flake";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+flake-root.url = "github:srid/flake-root";
 
     heist.url = "github:snapframework/heist"; # Waiting for 1.1.1.0 on nixpkgs cabal hashes
     heist.flake = false;
@@ -16,15 +17,15 @@
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
-        inputs.treefmt-flake.flakeModule
+        inputs.flake-root.flakeModule
+        inputs.treefmt-nix.flakeModule
       ];
       perSystem = { self', config, pkgs, ... }: {
         haskellProjects.default = {
           packages.heist-extra.root = ./.;
           buildTools = hp: {
-            inherit (pkgs)
-              treefmt;
-          } // config.treefmt.formatters;
+            treefmt = config.treefmt.build.wrapper;
+          } // config.treefmt.build.programs;
           source-overrides = {
             inherit (inputs) heist;
           };
@@ -33,12 +34,23 @@
           };
           hlintCheck.enable = true;
         };
-        treefmt.formatters = {
-          inherit (pkgs)
-            nixpkgs-fmt;
-          inherit (pkgs.haskellPackages)
-            cabal-fmt
-            fourmolu;
+
+        treefmt.config = {
+          inherit (config.flake-root) projectRootFile;
+          package = pkgs.treefmt;
+
+          programs.ormolu.enable = true;
+          programs.nixpkgs-fmt.enable = true;
+          programs.cabal-fmt.enable = true;
+
+          # We use fourmolu
+          programs.ormolu.package = pkgs.haskellPackages.fourmolu;
+          settings.formatter.ormolu = {
+            options = [
+              "--ghc-opt"
+              "-XImportQualifiedPost"
+            ];
+          };
         };
       };
 
