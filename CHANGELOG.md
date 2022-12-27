@@ -1,5 +1,9 @@
 # Revision history for heist-extra
 
+## 0.3.0.0 (Unreleased)
+
+- `treeSplice`: pass children to sortKey function: https://github.com/srid/heist-extra/pull/2
+
 ## 0.2.0.0 (2022-11-14)
 
 - Drop `heist-emanote`, and depend instead of the updated `heist` package.
