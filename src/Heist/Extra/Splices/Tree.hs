@@ -22,13 +22,13 @@ treeSplice =
     go :: [a] -> (NonEmpty a -> [Tree a] -> sortKey) -> [Tree a] -> (NonEmpty a -> [Tree a] -> H.Splices (HI.Splice Identity)) -> HI.Splice Identity
     go pars sortKey trees childSplice = do
       let extendPars x = maybe (one x) (<> one x) $ nonEmpty pars
-      let sorter x = sortKey (extendPars $ rootLabel x) (subForest x)
-      flip foldMapM (sortOn sorter trees) $ \(Node lbl children) -> do
+          nodeKey x = sortKey (extendPars $ rootLabel x) (subForest x)
+      flip foldMapM (sortOn nodeKey trees) $ \(Node lbl children) -> do
         HI.runChildrenWith $ do
           let herePath = extendPars lbl
           childSplice herePath children
           "has-children" ## Heist.ifElseISplice (not . null $ children)
-          let childrenSorter x = sortKey (herePath <> one (rootLabel x)) (subForest x)
-          let childrenSorted = sortOn childrenSorter children
+          let childKey x = sortKey (herePath <> one (rootLabel x)) (subForest x)
+              childrenSorted = sortOn childKey children
           "children"
             ## go (toList herePath) sortKey childrenSorted childSplice
