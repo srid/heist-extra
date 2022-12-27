@@ -41,5 +41,8 @@
             fourmolu;
         };
       };
+
+      # CI configuration
+      flake.herculesCI.ciSystems = [ "x86_64-linux" "aarch64-darwin" ];
     };
 }

@@ -12,9 +12,9 @@ description:
 
 bug-reports:        https://github.com/srid/heist-extra
 extra-source-files:
+  CHANGELOG.md
   LICENSE
   README.md
-  CHANGELOG.md
 
 common shared
   ghc-options:
