@@ -6,7 +6,7 @@
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
-flake-root.url = "github:srid/flake-root";
+    flake-root.url = "github:srid/flake-root";
 
     heist.url = "github:snapframework/heist"; # Waiting for 1.1.1.0 on nixpkgs cabal hashes
     heist.flake = false;
