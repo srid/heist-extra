@@ -6,23 +6,21 @@
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
     treefmt-flake.url = "github:srid/treefmt-flake";
-    check-flake.url = "github:srid/check-flake";
 
     heist.url = "github:snapframework/heist"; # Waiting for 1.1.1.0 on nixpkgs cabal hashes
     heist.flake = false;
   };
 
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit self; } {
+    flake-parts.lib.mkFlake { inherit inputs; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
         inputs.treefmt-flake.flakeModule
-        inputs.check-flake.flakeModule
       ];
       perSystem = { self', config, pkgs, ... }: {
         haskellProjects.default = {
-          root = ./.;
+          packages.heist-extra.root = ./.;
           buildTools = hp: {
             inherit (pkgs)
               treefmt;
@@ -33,7 +31,7 @@
           overrides = self: super: with pkgs.haskell.lib; {
             heist = dontCheck super.heist; # Tests are broken.
           };
-          enableHLSCheck = true;
+          hlintCheck.enable = true;
         };
         treefmt.formatters = {
           inherit (pkgs)
