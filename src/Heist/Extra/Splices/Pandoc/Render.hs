@@ -61,16 +61,6 @@ rpBlock' ctx@RenderCtx {..} b = case b of
     pure $ case fmt of
       "html" ->
         rawNode "div" s
-      "video" ->
-        -- HACK format. TODO: replace with ![[foo.mp4]]
-        one . X.Element "video" [("autoplay", ""), ("loop", ""), ("muted", "")] $
-          one . X.Element "source" [("src", T.strip s)] $
-            one . X.Element "p" mempty $
-              [ X.TextNode "Your browser doesn't support HTML5 video. Here is a "
-              , X.Element "a" [("href", T.strip s)] $
-                  one . X.TextNode $ "link to the video"
-              , X.TextNode " instead."
-              ]
       _ ->
         one . X.Element "pre" [("class", "pandoc-raw-" <> show fmt)] $ one . X.TextNode $ s
   B.BlockQuote bs ->
