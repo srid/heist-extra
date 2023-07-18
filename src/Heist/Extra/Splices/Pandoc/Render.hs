@@ -56,7 +56,8 @@ rpBlock' ctx@RenderCtx {..} b = case b of
       one . X.Element "div" (rpAttr $ bAttr b) $
         one . X.Element "pre" mempty $
           one . X.Element "code" (rpAttr (id', classes, attrs)) $
-            one $ X.TextNode s
+            one $
+              X.TextNode s
   B.RawBlock (B.Format fmt) s -> do
     pure $ case fmt of
       "html" ->
@@ -184,7 +185,8 @@ rpInline' ctx@RenderCtx {..} i = case i of
   B.Code attr s ->
     pure $
       one . X.Element "code" (rpAttr $ concatAttr attr $ iAttr i) $
-        one . X.TextNode $ s
+        one . X.TextNode $
+          s
   B.Space -> pure $ one . X.TextNode $ " "
   B.SoftBreak -> pure $ one . X.TextNode $ " "
   B.LineBreak ->
@@ -195,17 +197,20 @@ rpInline' ctx@RenderCtx {..} i = case i of
       else
         pure $
           one . X.Element "pre" [("class", "pandoc-raw-" <> show fmt)] $
-            one . X.TextNode $ s
+            one . X.TextNode $
+              s
   B.Math mathType s ->
     case mathType of
       B.InlineMath ->
         pure $
           one . X.Element "span" [("class", "math inline")] $
-            one . X.TextNode $ "\\(" <> s <> "\\)"
+            one . X.TextNode $
+              "\\(" <> s <> "\\)"
       B.DisplayMath ->
         pure $
           one . X.Element "span" [("class", "math display")] $
-            one . X.TextNode $ "$$" <> s <> "$$"
+            one . X.TextNode $
+              "$$" <> s <> "$$"
   B.Link attr is (url, tit) -> do
     let attrs =
           catMaybes [Just ("href", url), guard (not $ T.null tit) >> pure ("title", tit)]
@@ -262,7 +267,8 @@ rpTask ctx is default_ =
 rawNode :: Text -> Text -> [X.Node]
 rawNode wrapperTag s =
   one . X.Element wrapperTag (one ("xmlhtmlRaw", "")) $
-    one . X.TextNode $ s
+    one . X.TextNode $
+      s
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text

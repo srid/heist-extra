@@ -10,6 +10,6 @@ listSplice xs childTag childSplice = do
   if null xs
     then pure mempty
     else HI.runChildrenWith $ do
-      childTag
-        ## (HI.runChildrenWith . childSplice)
+      childTag ##
+        (HI.runChildrenWith . childSplice)
           `foldMapM` xs

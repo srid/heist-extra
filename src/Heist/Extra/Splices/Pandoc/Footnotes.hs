@@ -36,8 +36,8 @@ renderFootnotesWith ctx fs' =
     let footnotesWithIdx = zip [1 :: Int ..] fs
     Just $
       runCustomNode renderNode $ do
-        "footnote"
-          ## (HI.runChildrenWith . uncurry (footnoteSplices ctx)) `foldMapM` footnotesWithIdx
+        "footnote" ##
+          (HI.runChildrenWith . uncurry (footnoteSplices ctx)) `foldMapM` footnotesWithIdx
 
 footnoteSplices :: RenderCtx -> Int -> [B.Block] -> H.Splices (HI.Splice Identity)
 footnoteSplices ctx idx bs = do
