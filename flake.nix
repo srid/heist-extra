@@ -1,12 +1,11 @@
 {
-  description = "srid/heist-extra: Nix template for Haskell projects";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     flake-root.url = "github:srid/flake-root";
+    systems.url = "github:nix-systems/default";
 
     heist.url = "github:snapframework/heist"; # Waiting for 1.1.1.0 on nixpkgs cabal hashes
     heist.flake = false;
@@ -14,7 +13,7 @@
 
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = nixpkgs.lib.systems.flakeExposed;
+      systems = import inputs.systems;
       imports = [
         inputs.haskell-flake.flakeModule
         inputs.flake-root.flakeModule
@@ -22,17 +21,11 @@
       ];
       perSystem = { self', config, pkgs, ... }: {
         haskellProjects.default = {
-          packages.heist-extra.root = ./.;
-          buildTools = hp: {
-            treefmt = config.treefmt.build.wrapper;
-          } // config.treefmt.build.programs;
-          source-overrides = {
-            inherit (inputs) heist;
+          packages = {
+            heist.source = inputs.heist;
           };
-          overrides = self: super: with pkgs.haskell.lib; {
-            heist = dontCheck super.heist; # Tests are broken.
-          };
-          hlintCheck.enable = true;
+          settings.heist.check = false; # Tests are broken
+          autoWire = [ "packages" "checks" ];
         };
 
         treefmt.config = {
@@ -52,9 +45,14 @@
             ];
           };
         };
-      };
 
-      # CI configuration
-      flake.herculesCI.ciSystems = [ "x86_64-linux" "aarch64-darwin" ];
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [
+            config.haskellProjects.default.outputs.devShell
+            config.treefmt.build.devShell
+          ];
+        };
+
+      };
     };
 }
