@@ -114,8 +114,9 @@ rpBlock' ctx@RenderCtx {..} b = case b of
   B.Div attr bs ->
     one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx attr)
       <$> foldMapM (rpBlock ctx) bs
-  B.Null ->
-    pure []
+  B.Figure attr _caption bs ->
+    -- TODO: support caption
+    one . X.Element "figure" (rpAttr attr) <$> foldMapM (rpBlock ctx) bs
   where
     getTag defaultTag (_, _, Map.fromList -> attrs) =
       Map.lookup "tag" attrs & fromMaybe defaultTag

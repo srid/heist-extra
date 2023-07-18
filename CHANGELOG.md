@@ -4,6 +4,7 @@
 
 - `treeSplice`: pass children to sortKey function (#2)
 - Remove video format hack (#4)
+- Require `pandoc-types >= 1.23` (adds `Figure` block support)
 
 ## 0.2.0.0 (2022-11-14)
 

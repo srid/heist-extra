@@ -23,6 +23,7 @@
         haskellProjects.default = {
           packages = {
             heist.source = inputs.heist;
+            pandoc-types.source = "1.23";
           };
           settings.heist.check = false; # Tests are broken
           autoWire = [ "packages" "checks" ];
