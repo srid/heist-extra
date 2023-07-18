@@ -13,8 +13,8 @@ runCustomNode node splices =
     HI.runNode node <&> \case
       [resNode]
         | X.elementTag resNode == X.elementTag node ->
-          -- Get rid of the `node` itself.
-          X.elementChildren resNode
+            -- Get rid of the `node` itself.
+            X.elementChildren resNode
       res ->
         res
 

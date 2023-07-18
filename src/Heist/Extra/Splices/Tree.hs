@@ -30,5 +30,5 @@ treeSplice =
           "has-children" ## Heist.ifElseISplice (not . null $ children)
           let childKey x = sortKey (herePath <> one (rootLabel x)) (subForest x)
               childrenSorted = sortOn childKey children
-          "children"
-            ## go (toList herePath) sortKey childrenSorted childSplice
+          "children" ##
+            go (toList herePath) sortKey childrenSorted childSplice
