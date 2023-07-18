@@ -48,22 +48,6 @@
         "type": "github"
       }
     },
-    "heist": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1689625289,
-        "narHash": "sha256-lXNFftuIAFRaCxBB9xkicCZN9KhCVNQJERK4BP8zfUU=",
-        "owner": "snapframework",
-        "repo": "heist",
-        "rev": "e5f0651684fe333135d061703441391070f38145",
-        "type": "github"
-      },
-      "original": {
-        "owner": "snapframework",
-        "repo": "heist",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1689601424,
@@ -119,7 +103,6 @@
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
         "haskell-flake": "haskell-flake",
-        "heist": "heist",
         "nixpkgs": "nixpkgs",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix"
