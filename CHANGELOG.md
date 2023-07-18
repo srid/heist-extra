@@ -2,7 +2,8 @@
 
 ## 0.3.0.0 (Unreleased)
 
-- `treeSplice`: pass children to sortKey function: https://github.com/srid/heist-extra/pull/2
+- `treeSplice`: pass children to sortKey function (#2)
+- Remove video format hack (#4)
 
 ## 0.2.0.0 (2022-11-14)
 
