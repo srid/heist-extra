@@ -1,6 +1,6 @@
 # Revision history for heist-extra
 
-## 0.3.0.0 (Unreleased)
+## 0.3.0.0 (2023-08-09)
 
 - `treeSplice`: pass children to sortKey function (#2)
 - Remove video format hack (#4)
