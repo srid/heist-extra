@@ -86,9 +86,11 @@ rpBlock' ctx@RenderCtx {..} b = case b of
             flip foldMapM descList $
               fmap (one . X.Element "dd" mempty) . foldMapM (rpBlock ctx)
           pure $ a <> as
-  B.Header level attr is ->
-    one . X.Element (headerTag level) (rpAttr $ concatAttr attr $ bAttr b)
-      <$> foldMapM (rpInline ctx) is
+  B.Header level attr@(headerId, _, _) is -> do
+    let innerSplice = foldMapM (rpInline ctx) is
+    withTplTag ctx ("Header:" <> show level) (headerSplices headerId innerSplice) $
+      one . X.Element (headerTag level) (rpAttr $ concatAttr attr $ bAttr b)
+        <$> innerSplice
   B.HorizontalRule ->
     withTplTag ctx "HorizontalRule" mempty (pure $ one $ X.Element "hr" mempty mempty)
   B.Table attr _captions _colSpec (B.TableHead _ hrows) tbodys _tfoot -> do
@@ -135,6 +137,10 @@ rpBlock' ctx@RenderCtx {..} b = case b of
         classes <- nonEmpty classes'
         let lang = head classes
         pure $ lang : ("language-" <> lang) : tail classes
+
+    headerSplices headerId innerSplice = do
+      "header:id" ## HI.textSplice headerId
+      "inlines" ## innerSplice
 
     definitionListSplices :: [([B.Inline], [[B.Block]])] -> H.Splices (HI.Splice Identity)
     definitionListSplices defs = do

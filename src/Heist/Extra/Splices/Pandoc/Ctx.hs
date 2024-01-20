@@ -103,10 +103,6 @@ blockLookupAttr node = \case
   B.OrderedList {} -> childTagAttr node "OrderedList"
   B.CodeBlock {} -> childTagAttr node "CodeBlock"
   B.BlockQuote {} -> childTagAttr node "BlockQuote"
-  B.Header level _ _ ->
-    fromMaybe B.nullAttr $ do
-      header <- X.childElementTag "Header" node
-      pure $ childTagAttr header ("h" <> show level)
   _ -> B.nullAttr
 
 inlineLookupAttr :: X.Node -> B.Inline -> B.Attr
