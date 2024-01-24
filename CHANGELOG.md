@@ -1,5 +1,10 @@
 # Revision history for heist-extra
 
+## Unreleased
+
+- **Backwards incompatible** changes
+  - Improved Header renderer to included heading ID (#6)
+
 ## 0.3.0.0 (2023-08-09)
 
 - `treeSplice`: pass children to sortKey function (#2)
