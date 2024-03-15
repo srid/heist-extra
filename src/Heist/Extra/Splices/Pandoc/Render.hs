@@ -291,4 +291,6 @@ plainify = W.query $ \case
   B.Span _ _ -> ""
   -- TODO: How to wrap math stuff here?
   B.Math _mathTyp s -> s
+  -- Ignore footnote or endnote
+  B.Note {} -> ""
   _ -> ""
