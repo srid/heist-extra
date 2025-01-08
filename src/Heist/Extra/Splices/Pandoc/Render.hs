@@ -253,38 +253,39 @@ rpInline' ctx@RenderCtx {..} i = case i of
         w <&> \nodes ->
           [X.TextNode "“"] <> nodes <> [X.TextNode "”"]
 
--- | Convert raw html attribute sequence into span
---
--- For example, this markdown: `<kbd>ctrl</kbd>`, which is in native pandoc:
---   RawInline (Format "html") "<kbd>" : Str "ctrl" : RawInline (Format "html") "</kbd>"
--- … is converted as:
---   <span xmlhtmlraw=""><kbd>ctrl</kbd></span>
--- … instead of the default behavior which is:
---   <span xmlhtmlraw=""><kbd></kbd></span>ctrl<span xmlhtmlraw=""></span>
+{- | Convert raw html attribute sequence into span
+
+ For example, this markdown: `<kbd>ctrl</kbd>`, which is in native pandoc:
+   RawInline (Format "html") "<kbd>" : Str "ctrl" : RawInline (Format "html") "</kbd>"
+ … is converted as:
+   <span xmlhtmlraw=""><kbd>ctrl</kbd></span>
+ … instead of the default behavior which is:
+   <span xmlhtmlraw=""><kbd></kbd></span>ctrl<span xmlhtmlraw=""></span>
+-}
 convertRawInline :: [B.Inline] -> [B.Inline] -> [B.Inline]
 convertRawInline acc = \case
   [] -> reverse acc
   (B.RawInline (B.Format "html") oTag : rest)
     | -- This is a new raw tag, let's find a matching closing tag
-      Just (newElem, is) <- mkHtmlInline oTag rest
-        -> convertRawInline (newElem : acc) is
+      Just (newElem, is) <- mkHtmlInline oTag rest ->
+        convertRawInline (newElem : acc) is
   i : is -> convertRawInline (i : acc) is
- where
-   mkHtmlInline :: Text -> [B.Inline] -> Maybe (B.Inline, [B.Inline])
-   mkHtmlInline oTag rest = case span (not . isClosingTag oTag) rest of
-     -- Collect the inner element until a closing tag
-     (inner, (closing : is))
-       | -- Verify we did find a matching tag
-         isClosingTag oTag closing ->
-           let inner' = oTag <> plainify inner <> "</" <> T.drop 1 oTag
-            in Just (B.RawInline (B.Format "html") inner', is)
-     _ -> Nothing
+  where
+    mkHtmlInline :: Text -> [B.Inline] -> Maybe (B.Inline, [B.Inline])
+    mkHtmlInline oTag rest = case span (not . isClosingTag oTag) rest of
+      -- Collect the inner element until a closing tag
+      (inner, (closing : is))
+        | -- Verify we did find a matching tag
+          isClosingTag oTag closing ->
+            let inner' = oTag <> plainify inner <> "</" <> T.drop 1 oTag
+             in Just (B.RawInline (B.Format "html") inner', is)
+      _ -> Nothing
 
-   isClosingTag :: Text -> B.Inline -> Bool
-   isClosingTag oTag = \case
-     B.RawInline (B.Format "html") eTag ->
-       "<" `T.isPrefixOf` oTag && "</" `T.isPrefixOf` eTag && T.drop 1 oTag == T.drop 2 eTag
-     _ -> False
+    isClosingTag :: Text -> B.Inline -> Bool
+    isClosingTag oTag = \case
+      B.RawInline (B.Format "html") eTag ->
+        "<" `T.isPrefixOf` oTag && "</" `T.isPrefixOf` eTag && T.drop 1 oTag == T.drop 2 eTag
+      _ -> False
 
 -- | Like rpInline', but supports task checkbox in the given inlines.
 rpInlineWithTasks :: RenderCtx -> [B.Inline] -> HI.Splice Identity
