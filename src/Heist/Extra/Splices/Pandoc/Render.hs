@@ -43,14 +43,14 @@ withTplTag RenderCtx {..} name splices default_ =
 rpBlock' :: RenderCtx -> B.Block -> HI.Splice Identity
 rpBlock' ctx@RenderCtx {..} b = case b of
   B.Plain is ->
-    rpInlineWithTasks ctx is
+    rpInlineWithTasks ctx (convertRawInline [] is)
   B.Para is -> do
-    let innerSplice = rpInlineWithTasks ctx is
+    let innerSplice = rpInlineWithTasks ctx (convertRawInline [] is)
     withTplTag ctx "Para" ("inlines" ## innerSplice) $
       one . X.Element "p" mempty <$> innerSplice
   B.LineBlock iss ->
     flip foldMapM iss $ \is ->
-      foldMapM (rpInline ctx) is >> pure [X.TextNode "\n"]
+      foldMapM (rpInline ctx) (convertRawInline [] is) >> pure [X.TextNode "\n"]
   B.CodeBlock (id', mkLangClass -> classes, attrs) s -> do
     pure $
       one . X.Element "div" (rpAttr $ bAttr b) $
@@ -81,13 +81,13 @@ rpBlock' ctx@RenderCtx {..} b = case b of
     withTplTag ctx "DefinitionList" (definitionListSplices defs) $
       fmap (one . X.Element "dl" mempty) $
         flip foldMapM defs $ \(term, descList) -> do
-          a <- foldMapM (rpInline ctx) term
+          a <- foldMapM (rpInline ctx) (convertRawInline [] term)
           as <-
             flip foldMapM descList $
               fmap (one . X.Element "dd" mempty) . foldMapM (rpBlock ctx)
           pure $ a <> as
   B.Header level attr@(headerId, _, _) is -> do
-    let innerSplice = foldMapM (rpInline ctx) is
+    let innerSplice = foldMapM (rpInline ctx) (convertRawInline [] is)
     withTplTag ctx ("Header:" <> show level) (headerSplices headerId innerSplice) $
       one . X.Element (headerTag level) (rpAttr $ concatAttr attr $ bAttr b)
         <$> innerSplice
@@ -291,7 +291,7 @@ convertRawInline acc = \case
 rpInlineWithTasks :: RenderCtx -> [B.Inline] -> HI.Splice Identity
 rpInlineWithTasks ctx is =
   rpTask ctx is $
-    rpInline ctx `foldMapM` convertRawInline [] is
+    rpInline ctx `foldMapM` is
 
 rpTask :: RenderCtx -> [B.Inline] -> HI.Splice Identity -> HI.Splice Identity
 rpTask ctx is default_ =
