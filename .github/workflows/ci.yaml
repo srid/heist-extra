@@ -8,7 +8,7 @@ on:
 
 jobs:
   nix:
-    runs-on: ${{ matrix.sytstem }}
+    runs-on: ${{ matrix.system }}
     strategy:
       matrix:
         system: [x86_64-linux, aarch64-darwin]
