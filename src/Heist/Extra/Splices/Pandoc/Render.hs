@@ -43,14 +43,14 @@ withTplTag RenderCtx {..} name splices default_ =
 rpBlock' :: RenderCtx -> B.Block -> HI.Splice Identity
 rpBlock' ctx@RenderCtx {..} b = case b of
   B.Plain is ->
-    rpInlineWithTasks ctx is
+    rpInlineWithTasks ctx (convertRawInline [] is)
   B.Para is -> do
-    let innerSplice = rpInlineWithTasks ctx is
+    let innerSplice = rpInlineWithTasks ctx (convertRawInline [] is)
     withTplTag ctx "Para" ("inlines" ## innerSplice) $
       one . X.Element "p" mempty <$> innerSplice
   B.LineBlock iss ->
     flip foldMapM iss $ \is ->
-      foldMapM (rpInline ctx) is >> pure [X.TextNode "\n"]
+      foldMapM (rpInline ctx) (convertRawInline [] is) >> pure [X.TextNode "\n"]
   B.CodeBlock (id', mkLangClass -> classes, attrs) s -> do
     pure $
       one . X.Element "div" (rpAttr $ bAttr b) $
@@ -81,13 +81,13 @@ rpBlock' ctx@RenderCtx {..} b = case b of
     withTplTag ctx "DefinitionList" (definitionListSplices defs) $
       fmap (one . X.Element "dl" mempty) $
         flip foldMapM defs $ \(term, descList) -> do
-          a <- foldMapM (rpInline ctx) term
+          a <- foldMapM (rpInline ctx) (convertRawInline [] term)
           as <-
             flip foldMapM descList $
               fmap (one . X.Element "dd" mempty) . foldMapM (rpBlock ctx)
           pure $ a <> as
   B.Header level attr@(headerId, _, _) is -> do
-    let innerSplice = foldMapM (rpInline ctx) is
+    let innerSplice = foldMapM (rpInline ctx) (convertRawInline [] is)
     withTplTag ctx ("Header:" <> show level) (headerSplices headerId innerSplice) $
       one . X.Element (headerTag level) (rpAttr $ concatAttr attr $ bAttr b)
         <$> innerSplice
@@ -252,6 +252,40 @@ rpInline' ctx@RenderCtx {..} i = case i of
       B.DoubleQuote ->
         w <&> \nodes ->
           [X.TextNode "“"] <> nodes <> [X.TextNode "”"]
+
+{- | Convert raw html attribute sequence into span
+
+ For example, this markdown: `<kbd>ctrl</kbd>`, which is in native pandoc:
+   RawInline (Format "html") "<kbd>" : Str "ctrl" : RawInline (Format "html") "</kbd>"
+ … is converted as:
+   <span xmlhtmlraw=""><kbd>ctrl</kbd></span>
+ … instead of the default behavior which is:
+   <span xmlhtmlraw=""><kbd></kbd></span>ctrl<span xmlhtmlraw=""></span>
+-}
+convertRawInline :: [B.Inline] -> [B.Inline] -> [B.Inline]
+convertRawInline acc = \case
+  [] -> reverse acc
+  (B.RawInline (B.Format "html") oTag : rest)
+    | -- This is a new raw tag, let's find a matching closing tag
+      Just (newElem, is) <- mkHtmlInline oTag rest ->
+        convertRawInline (newElem : acc) is
+  i : is -> convertRawInline (i : acc) is
+  where
+    mkHtmlInline :: Text -> [B.Inline] -> Maybe (B.Inline, [B.Inline])
+    mkHtmlInline oTag rest = case span (not . isClosingTag oTag) rest of
+      -- Collect the inner element until a closing tag
+      (inner, (closing : is))
+        | -- Verify we did find a matching tag
+          isClosingTag oTag closing ->
+            let inner' = oTag <> plainify inner <> "</" <> T.drop 1 oTag
+             in Just (B.RawInline (B.Format "html") inner', is)
+      _ -> Nothing
+
+    isClosingTag :: Text -> B.Inline -> Bool
+    isClosingTag oTag = \case
+      B.RawInline (B.Format "html") eTag ->
+        "<" `T.isPrefixOf` oTag && "</" `T.isPrefixOf` eTag && T.drop 1 oTag == T.drop 2 eTag
+      _ -> False
 
 -- | Like rpInline', but supports task checkbox in the given inlines.
 rpInlineWithTasks :: RenderCtx -> [B.Inline] -> HI.Splice Identity
