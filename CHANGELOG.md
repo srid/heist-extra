@@ -1,6 +1,6 @@
 # Revision history for heist-extra
 
-## Unreleased
+## 0.4.0.0 (2025-08-19)
 
 - **Backwards incompatible** changes
   - Improved Header renderer to included heading ID (#6)
