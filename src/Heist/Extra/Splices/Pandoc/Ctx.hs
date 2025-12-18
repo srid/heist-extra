@@ -3,6 +3,7 @@
 module Heist.Extra.Splices.Pandoc.Ctx (
   RenderCtx (..),
   mkRenderCtx,
+  mkRenderCtxWithHighlighting,
   emptyRenderCtx,
   rewriteClass,
   ctxSansCustomSplicing,
@@ -32,6 +33,8 @@ data RenderCtx = RenderCtx
   , -- Custom render functions for AST nodes.
     blockSplice :: B.Block -> Maybe (HI.Splice Identity)
   , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
+  , -- | Enable syntax highlighting for code blocks using skylighting
+    enableSyntaxHighlighting :: Bool
   }
 
 mkRenderCtx ::
@@ -59,6 +62,16 @@ mkRenderCtxWith ::
   (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
   RenderCtx
 mkRenderCtxWith node classMap bS iS = do
+  mkRenderCtxWithHighlighting node classMap bS iS True
+
+mkRenderCtxWithHighlighting ::
+  X.Node ->
+  Map Text Text ->
+  (RenderCtx -> B.Block -> Maybe (HI.Splice Identity)) ->
+  (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
+  Bool ->
+  RenderCtx
+mkRenderCtxWithHighlighting node classMap bS iS highlighting = do
   let ctx =
         RenderCtx
           (Just node)
@@ -67,11 +80,12 @@ mkRenderCtxWith node classMap bS iS = do
           classMap
           (bS ctx)
           (iS ctx)
+          highlighting
    in ctx
 
 emptyRenderCtx :: RenderCtx
 emptyRenderCtx =
-  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing)
+  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) False
 
 -- | Strip any custom splicing out of the given render context
 ctxSansCustomSplicing :: RenderCtx -> RenderCtx

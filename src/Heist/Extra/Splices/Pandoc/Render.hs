@@ -18,6 +18,7 @@ import Heist.Extra.Splices.Pandoc.Ctx (
   RenderCtx (..),
   rewriteClass,
  )
+import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
@@ -52,12 +53,16 @@ rpBlock' ctx@RenderCtx {..} b = case b of
     flip foldMapM iss $ \is ->
       foldMapM (rpInline ctx) (convertRawInline [] is) >> pure [X.TextNode "\n"]
   B.CodeBlock (id', mkLangClass -> classes, attrs) s -> do
+    let lang = listToMaybe classes
+        codeNodes =
+          if enableSyntaxHighlighting
+            then highlightCode lang s
+            else one $ X.TextNode s
     pure $
       one . X.Element "div" (rpAttr $ bAttr b) $
         one . X.Element "pre" mempty $
           one . X.Element "code" (rpAttr (id', classes, attrs)) $
-            one $
-              X.TextNode s
+            codeNodes
   B.RawBlock (B.Format fmt) s -> do
     pure $ case fmt of
       "html" ->
