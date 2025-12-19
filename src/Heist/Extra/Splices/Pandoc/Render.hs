@@ -18,6 +18,7 @@ import Heist.Extra.Splices.Pandoc.Ctx (
   RenderCtx (..),
   rewriteClass,
  )
+import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
@@ -51,13 +52,19 @@ rpBlock' ctx@RenderCtx {..} b = case b of
   B.LineBlock iss ->
     flip foldMapM iss $ \is ->
       foldMapM (rpInline ctx) (convertRawInline [] is) >> pure [X.TextNode "\n"]
-  B.CodeBlock (id', mkLangClass -> classes, attrs) s -> do
+  B.CodeBlock (id', classes, attrs) s -> do
+    let lang = listToMaybe classes
+        codeNodes =
+          if enableSyntaxHighlighting
+            then case highlightCode lang s of
+              Left err -> [X.Element "span" [("class", "error")] [X.TextNode err], X.TextNode s]
+              Right nodes -> nodes
+            else one $ X.TextNode s
     pure $
       one . X.Element "div" (rpAttr $ bAttr b) $
         one . X.Element "pre" mempty $
           one . X.Element "code" (rpAttr (id', classes, attrs)) $
-            one $
-              X.TextNode s
+            codeNodes
   B.RawBlock (B.Format fmt) s -> do
     pure $ case fmt of
       "html" ->
@@ -122,21 +129,6 @@ rpBlock' ctx@RenderCtx {..} b = case b of
   where
     getTag defaultTag (_, _, Map.fromList -> attrs) =
       Map.lookup "tag" attrs & fromMaybe defaultTag
-    mkLangClass classes' =
-      -- Tag code block with "foo language-foo" classes, if the user specified
-      -- "foo" as the language identifier. This enables external syntax
-      -- highlighters to detect the language.
-      --
-      -- If no language is specified, use "language-none" as the language This
-      -- works at least on prism.js,[1] in that - syntax highlighting is turned
-      -- off all the while background styling is applied, to be consistent with
-      -- code blocks with language set.
-      --
-      -- [1] https://github.com/PrismJS/prism/pull/2738
-      fromMaybe ["language-none"] $ do
-        classes <- nonEmpty classes'
-        let lang = head classes
-        pure $ lang : ("language-" <> lang) : tail classes
 
     headerSplices headerId innerSplice = do
       "header:id" ## HI.textSplice headerId

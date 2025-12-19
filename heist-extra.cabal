@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               heist-extra
-version:            0.4.0.0
+version:            0.5.0.0
 license:            MIT
 copyright:          2022 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -70,6 +70,8 @@ common shared
 
   build-depends:
     , base          >=4.13.0.0 && <5
+    , blaze-html
+    , containers
     , data-default
     , filepath
     , heist         >=1.1.1.0
@@ -77,6 +79,10 @@ common shared
     , mtl
     , pandoc-types  >=1.23
     , relude        >=1.0
+    , skylighting
+    , skylighting-core
+    , skylighting-format-blaze-html
+    , text
     , xmlhtml
 
   hs-source-dirs:     src
@@ -92,6 +98,7 @@ library
     Heist.Extra.Splices.Pandoc.Ctx
     Heist.Extra.Splices.Pandoc.Footnotes
     Heist.Extra.Splices.Pandoc.Render
+    Heist.Extra.Splices.Pandoc.Skylighting
     Heist.Extra.Splices.Pandoc.TaskList
     Heist.Extra.Splices.Tree
     Heist.Extra.TemplateState
