@@ -3,7 +3,6 @@
 module Heist.Extra.Splices.Pandoc.Ctx (
   RenderCtx (..),
   mkRenderCtx,
-  mkRenderCtxWithHighlighting,
   emptyRenderCtx,
   rewriteClass,
   ctxSansCustomSplicing,
@@ -33,45 +32,23 @@ data RenderCtx = RenderCtx
   , -- Custom render functions for AST nodes.
     blockSplice :: B.Block -> Maybe (HI.Splice Identity)
   , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
-  , -- | Enable syntax highlighting for code blocks using skylighting
-    enableSyntaxHighlighting :: Bool
+  , enableSyntaxHighlighting :: Bool
+  -- ^ Enable syntax highlighting for code blocks using skylighting
   }
 
 mkRenderCtx ::
   (Monad m) =>
-  Map Text Text ->
-  (RenderCtx -> B.Block -> Maybe (HI.Splice Identity)) ->
-  (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
-  H.HeistT Identity m RenderCtx
-mkRenderCtx classMap bS iS = do
-  node <- H.getParamNode
-  pure $
-    mkRenderCtxWith
-      node
-      classMap
-      bS
-      iS
-
-mkRenderCtxWith ::
-  X.Node ->
   -- | How to replace classes in Div and Span nodes.
   Map Text Text ->
   -- | Custom handling of AST block nodes
   (RenderCtx -> B.Block -> Maybe (HI.Splice Identity)) ->
   -- | Custom handling of AST inline nodes
   (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
-  RenderCtx
-mkRenderCtxWith node classMap bS iS = do
-  mkRenderCtxWithHighlighting node classMap bS iS True
-
-mkRenderCtxWithHighlighting ::
-  X.Node ->
-  Map Text Text ->
-  (RenderCtx -> B.Block -> Maybe (HI.Splice Identity)) ->
-  (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
+  -- | Enable syntax highlighting for code blocks
   Bool ->
-  RenderCtx
-mkRenderCtxWithHighlighting node classMap bS iS highlighting = do
+  H.HeistT Identity m RenderCtx
+mkRenderCtx classMap bS iS enableHighlighting = do
+  node <- H.getParamNode
   let ctx =
         RenderCtx
           (Just node)
@@ -80,8 +57,8 @@ mkRenderCtxWithHighlighting node classMap bS iS highlighting = do
           classMap
           (bS ctx)
           (iS ctx)
-          highlighting
-   in ctx
+          enableHighlighting
+   in pure ctx
 
 emptyRenderCtx :: RenderCtx
 emptyRenderCtx =
