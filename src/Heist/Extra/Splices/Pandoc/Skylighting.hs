@@ -8,10 +8,7 @@ module Heist.Extra.Splices.Pandoc.Skylighting (
   highlightCode,
 ) where
 
-import Data.Map.Strict qualified as Map
-import Data.Text qualified as T
 import Skylighting (
-  SyntaxMap,
   TokenizerConfig (..),
   defaultSyntaxMap,
   lookupSyntax,
@@ -20,28 +17,29 @@ import Skylighting (
 import Skylighting.Types (SourceLine, Token, TokenType (..))
 import Text.XmlHtml qualified as X
 
--- | Highlight code using skylighting.
--- Returns XmlHtml nodes with span elements containing class attributes
--- for each token type. Falls back to plain text if language is unknown.
+{- | Highlight code using skylighting.
+ Returns XmlHtml nodes with span elements containing class attributes
+ for each token type. Returns Left with error message if tokenization fails.
+ Returns Right with plain text if language is unknown.
+-}
 highlightCode ::
   -- | Language identifier (e.g., "haskell", "python")
   Maybe Text ->
   -- | Source code to highlight
   Text ->
-  -- | XmlHtml nodes with highlighting spans
-  [X.Node]
+  -- | Either error message or XmlHtml nodes with highlighting spans
+  Either Text [X.Node]
 highlightCode mLang code =
   case mLang >>= flip lookupSyntax defaultSyntaxMap of
     Nothing ->
-      -- Unknown language or no language specified: plain text
-      [X.TextNode code]
+      -- Unknown language or no language specified: plain text (not an error)
+      Right [X.TextNode code]
     Just syntax ->
       case tokenize config syntax code of
-        Left _err ->
-          -- Tokenization failed: fall back to plain text
-          [X.TextNode code]
+        Left err ->
+          Left $ "Skylighting tokenization error: " <> toText err
         Right sourceLines ->
-          renderSourceLines sourceLines
+          Right $ renderSourceLines sourceLines
   where
     config =
       TokenizerConfig
@@ -65,8 +63,9 @@ renderSourceLines = concatMap renderLine
         Just cls ->
           X.Element "span" [("class", cls)] [X.TextNode txt]
 
--- | Map token types to CSS class names.
--- These class names match Pandoc's skylighting HTML output.
+{- | Map token types to CSS class names.
+ These class names match Pandoc's skylighting HTML output.
+-}
 tokenTypeClass :: TokenType -> Maybe Text
 tokenTypeClass = \case
   KeywordTok -> Just "kw"

@@ -56,7 +56,9 @@ rpBlock' ctx@RenderCtx {..} b = case b of
     let lang = listToMaybe classes
         codeNodes =
           if enableSyntaxHighlighting
-            then highlightCode lang s
+            then case highlightCode lang s of
+              Left err -> [X.Element "span" [("class", "error")] [X.TextNode err], X.TextNode s]
+              Right nodes -> nodes
             else one $ X.TextNode s
     pure $
       one . X.Element "div" (rpAttr $ bAttr b) $
