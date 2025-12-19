@@ -3,6 +3,7 @@
 ## 0.5.0.0 (2025-12-18)
 
 - Add syntax highlighting for code blocks using skylighting (#10)
+- Remove prism.js `language-*` class hack (no longer needed with static highlighting)
 
 ## 0.4.0.0 (2025-08-19)
 
