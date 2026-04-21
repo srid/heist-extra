@@ -44,4 +44,7 @@ fromContent :: XL.Content -> [X.Node]
 fromContent = \case
   XL.Elem e -> [fromElement e]
   XL.Text cd -> [X.TextNode (toText $ XL.cdData cd)]
-  XL.CRef _ -> []
+  -- texmath's MathML writer emits Unicode directly, so this branch is
+  -- unreachable in practice. Preserve the entity literally rather than
+  -- silently dropping it, so any future regression is visible.
+  XL.CRef ref -> [X.TextNode $ "&" <> toText ref <> ";"]
