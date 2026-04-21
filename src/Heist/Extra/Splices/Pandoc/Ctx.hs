@@ -2,6 +2,10 @@
 
 module Heist.Extra.Splices.Pandoc.Ctx (
   RenderCtx (..),
+  RenderFeatures (..),
+  CodeBackend (..),
+  MathBackend (..),
+  defaultFeatures,
   mkRenderCtx,
   emptyRenderCtx,
   rewriteClass,
@@ -16,6 +20,36 @@ import Heist.Extra.Splices.Pandoc.Attr (concatAttr)
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
 import Text.XmlHtml qualified as X
+
+-- | Backend for syntax-highlighting fenced code blocks.
+data CodeBackend
+  = -- | Emit code blocks unhighlighted; consumer wires client-side JS if desired.
+    NoHighlighting
+  | -- | Tokenize at build time via @skylighting@.
+    Skylighting
+  deriving stock (Eq, Show)
+
+-- | Backend for rendering `$...$` / `$$...$$` math.
+data MathBackend
+  = -- | Emit raw delimiters for client-side JS (KaTeX, MathJax) to pick up.
+    NoStaticMath
+  | -- | Convert to MathML at build time via @texmath@.
+    StaticMathML
+  deriving stock (Eq, Show)
+
+{- | Which rendering features are active. Selecting a non-trivial backend
+per axis is independently extensible — adding a third math backend does
+not touch call sites for the code backend, and vice versa.
+-}
+data RenderFeatures = RenderFeatures
+  { codeHighlighting :: CodeBackend
+  , mathRendering :: MathBackend
+  }
+  deriving stock (Eq, Show)
+
+-- | Everything off — the historical default before either feature existed.
+defaultFeatures :: RenderFeatures
+defaultFeatures = RenderFeatures NoHighlighting NoStaticMath
 
 {- | The configuration context under which we must render a `Pandoc` document
  using the given Heist template.
@@ -32,10 +66,7 @@ data RenderCtx = RenderCtx
   , -- Custom render functions for AST nodes.
     blockSplice :: B.Block -> Maybe (HI.Splice Identity)
   , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
-  , enableSyntaxHighlighting :: Bool
-  -- ^ Enable syntax highlighting for code blocks using skylighting
-  , enableStaticMath :: Bool
-  -- ^ Enable static (build-time) math rendering to MathML via texmath
+  , renderFeatures :: RenderFeatures
   }
 
 mkRenderCtx ::
@@ -46,12 +77,10 @@ mkRenderCtx ::
   (RenderCtx -> B.Block -> Maybe (HI.Splice Identity)) ->
   -- | Custom handling of AST inline nodes
   (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
-  -- | Enable syntax highlighting for code blocks
-  Bool ->
-  -- | Enable static math rendering to MathML
-  Bool ->
+  -- | Rendering feature selection (code highlighting, static math, …).
+  RenderFeatures ->
   H.HeistT Identity m RenderCtx
-mkRenderCtx classMap bS iS enableHighlighting enableStatic = do
+mkRenderCtx classMap bS iS features = do
   node <- H.getParamNode
   let ctx =
         RenderCtx
@@ -61,13 +90,12 @@ mkRenderCtx classMap bS iS enableHighlighting enableStatic = do
           classMap
           (bS ctx)
           (iS ctx)
-          enableHighlighting
-          enableStatic
+          features
    in pure ctx
 
 emptyRenderCtx :: RenderCtx
 emptyRenderCtx =
-  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) False False
+  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) defaultFeatures
 
 -- | Strip any custom splicing out of the given render context
 ctxSansCustomSplicing :: RenderCtx -> RenderCtx

@@ -15,7 +15,10 @@ import Heist qualified as H
 import Heist.Extra (runCustomNode)
 import Heist.Extra.Splices.Pandoc.Attr (concatAttr, rpAttr)
 import Heist.Extra.Splices.Pandoc.Ctx (
+  CodeBackend (..),
+  MathBackend (..),
   RenderCtx (..),
+  RenderFeatures (..),
   rewriteClass,
  )
 import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
@@ -55,12 +58,11 @@ rpBlock' ctx@RenderCtx {..} b = case b of
       foldMapM (rpInline ctx) (convertRawInline [] is) >> pure [X.TextNode "\n"]
   B.CodeBlock (id', classes, attrs) s -> do
     let lang = listToMaybe classes
-        codeNodes =
-          if enableSyntaxHighlighting
-            then case highlightCode lang s of
-              Left err -> [X.Element "span" [("class", "error")] [X.TextNode err], X.TextNode s]
-              Right nodes -> nodes
-            else one $ X.TextNode s
+        codeNodes = case codeHighlighting renderFeatures of
+          Skylighting -> case highlightCode lang s of
+            Left err -> [X.Element "span" [("class", "error")] [X.TextNode err], X.TextNode s]
+            Right nodes -> nodes
+          NoHighlighting -> one $ X.TextNode s
     pure $
       one . X.Element "div" (rpAttr $ bAttr b) $
         one . X.Element "pre" mempty $
@@ -200,24 +202,13 @@ rpInline' ctx@RenderCtx {..} i = case i of
             one . X.TextNode $
               s
   B.Math mathType s ->
-    if enableStaticMath
-      then case renderMath mathType s of
+    pure $ case mathRendering renderFeatures of
+      StaticMathML -> case renderMath mathType s of
+        Right nodes -> nodes
         Left err ->
-          pure $
-            one . X.Element "span" [("class", "math error")] $
-              [X.TextNode err, X.TextNode ": ", X.TextNode s]
-        Right nodes -> pure nodes
-      else case mathType of
-        B.InlineMath ->
-          pure $
-            one . X.Element "span" [("class", "math inline")] $
-              one . X.TextNode $
-                "\\(" <> s <> "\\)"
-        B.DisplayMath ->
-          pure $
-            one . X.Element "span" [("class", "math display")] $
-              one . X.TextNode $
-                "$$" <> s <> "$$"
+          one . X.Element "span" [("class", "math error")] $
+            [X.TextNode err, X.TextNode ": ", X.TextNode s]
+      NoStaticMath -> renderMathPassthrough mathType s
   B.Link attr is (url, tit) -> do
     let attrs =
           catMaybes [Just ("href", url), guard (not $ T.null tit) >> pure ("title", tit)]
@@ -310,6 +301,15 @@ rawNode wrapperTag s =
   one . X.Element wrapperTag (one ("xmlhtmlRaw", "")) $
     one . X.TextNode $
       s
+
+-- | Emit raw LaTeX wrapped in a span for client-side rendering (KaTeX/MathJax).
+renderMathPassthrough :: B.MathType -> Text -> [X.Node]
+renderMathPassthrough mathType s =
+  one . X.Element "span" [("class", klass)] . one . X.TextNode $ wrapped
+  where
+    (klass, wrapped) = case mathType of
+      B.InlineMath -> ("math inline", "\\(" <> s <> "\\)")
+      B.DisplayMath -> ("math display", "$$" <> s <> "$$")
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text
