@@ -4,7 +4,7 @@ import Data.List qualified as List
 import Data.Map.Syntax ((##))
 import Heist qualified as H
 import Heist.Extra (runCustomNode)
-import Heist.Extra.Splices.Pandoc.Ctx (RenderCtx (rootNode))
+import Heist.Extra.Splices.Pandoc.Ctx (RenderCtx (idPrefix, rootNode))
 import Heist.Extra.Splices.Pandoc.Render (renderPandocWith)
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
@@ -49,6 +49,11 @@ footnoteSplices ctx idx bs = do
         _ ->
           bs
   "footnote:idx" ## HI.textSplice (show idx)
+  -- HTML-id-friendly variant: the caller's `idPrefix` prepended. Use
+  -- this (not `footnote:idx`) for `id="fn…"` / `id="fnref…"` and for
+  -- the matching `href` fragments, so that nested `pandocSplice` calls
+  -- (e.g. embedded notes) don't collide.
+  "footnote:id" ## HI.textSplice (idPrefix ctx <> show idx)
   "footnote:content" ## renderPandocWith ctx footnoteDoc
 
 footnoteRefSplice :: RenderCtx -> [[B.Block]] -> B.Inline -> Maybe (HI.Splice Identity)

@@ -1,5 +1,14 @@
 # Revision history for heist-extra
 
+## 0.5.1.0 (unreleased)
+
+- `RenderCtx` gains an `idPrefix` field (default `""`) and a new
+  `footnote:id` splice is exposed. The splice emits
+  `idPrefix <> show idx` and is intended for the `id="…"` attributes
+  on footnote refs and list items. Unprefixed rendering is unchanged;
+  callers only need to act when they render multiple documents into a
+  single page (e.g. note embedding) and want to namespace footnote IDs.
+
 ## 0.5.0.0 (unreleased)
 
 - Add syntax highlighting for code blocks using skylighting (#10)
