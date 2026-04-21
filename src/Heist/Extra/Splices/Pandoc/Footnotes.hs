@@ -48,12 +48,9 @@ footnoteSplices ctx idx bs = do
           one $ B.Plain is
         _ ->
           bs
-  "footnote:idx" ## HI.textSplice (show idx)
-  -- HTML-id-friendly variant: the caller's `idPrefix` prepended. Use
-  -- this (not `footnote:idx`) for `id="fn…"` / `id="fnref…"` and for
-  -- the matching `href` fragments, so that nested `pandocSplice` calls
-  -- (e.g. embedded notes) don't collide.
-  "footnote:id" ## HI.textSplice (idPrefix ctx <> show idx)
+  let idxText = show idx
+  "footnote:idx" ## HI.textSplice idxText
+  "footnote:id" ## HI.textSplice (idPrefix ctx <> idxText)
   "footnote:content" ## renderPandocWith ctx footnoteDoc
 
 footnoteRefSplice :: RenderCtx -> [[B.Block]] -> B.Inline -> Maybe (HI.Splice Identity)
