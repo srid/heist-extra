@@ -67,11 +67,9 @@ data RenderCtx = RenderCtx
     blockSplice :: B.Block -> Maybe (HI.Splice Identity)
   , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
   , renderFeatures :: RenderFeatures
-  , -- Prefix for HTML IDs generated during rendering (currently only
-    -- footnote IDs). Empty by default; a non-empty value namespaces IDs
-    -- so that multiple documents rendered into the same page (e.g. via
-    -- note embedding) do not produce duplicate id attributes.
-    idPrefix :: Text
+  , idPrefix :: Text
+  -- ^ Prepended to HTML IDs emitted by rendering, so multiple
+  -- documents on the same page don't collide. Empty by default.
   }
 
 mkRenderCtx ::
@@ -89,19 +87,29 @@ mkRenderCtx classMap bS iS features = do
   node <- H.getParamNode
   let ctx =
         RenderCtx
-          (Just node)
-          (blockLookupAttr node)
-          (inlineLookupAttr node)
-          classMap
-          (bS ctx)
-          (iS ctx)
-          features
-          ""
+          { rootNode = Just node
+          , bAttr = blockLookupAttr node
+          , iAttr = inlineLookupAttr node
+          , classMap = classMap
+          , blockSplice = bS ctx
+          , inlineSplice = iS ctx
+          , renderFeatures = features
+          , idPrefix = ""
+          }
    in pure ctx
 
 emptyRenderCtx :: RenderCtx
 emptyRenderCtx =
-  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) defaultFeatures ""
+  RenderCtx
+    { rootNode = Nothing
+    , bAttr = const B.nullAttr
+    , iAttr = const B.nullAttr
+    , classMap = mempty
+    , blockSplice = const Nothing
+    , inlineSplice = const Nothing
+    , renderFeatures = defaultFeatures
+    , idPrefix = ""
+    }
 
 -- | Strip any custom splicing out of the given render context
 ctxSansCustomSplicing :: RenderCtx -> RenderCtx
