@@ -1,50 +1,21 @@
-{- | Static math rendering using texmath.
-
-This module converts LaTeX math expressions to MathML at build time,
-producing XmlHtml nodes that browsers render natively without JavaScript.
--}
+-- | Static math rendering via @texmath@ (LaTeX → MathML at build time).
 module Heist.Extra.Splices.Pandoc.Texmath (
   renderMath,
 ) where
 
+import Data.Text.Encoding qualified as TE
 import Text.Pandoc.Builder qualified as B
 import Text.TeXMath (DisplayType (..), readTeX, writeMathML)
-import Text.XML.Light qualified as XL
+import Text.XML.Light.Output (showElement)
 import Text.XmlHtml qualified as X
 
-{- | Render math using texmath.
- Returns MathML nodes for the given LaTeX source. Returns Left with
- error message if the LaTeX fails to parse.
--}
-renderMath ::
-  B.MathType ->
-  -- | LaTeX math source
-  Text ->
-  Either Text [X.Node]
-renderMath mathType src =
-  case readTeX src of
-    Left err -> Left err
-    Right exps -> Right [fromElement $ writeMathML (displayType mathType) exps]
+renderMath :: B.MathType -> Text -> Either Text [X.Node]
+renderMath mathType src = do
+  exps <- readTeX src
+  let mathml = toText . showElement $ writeMathML (displayType mathType) exps
+  first toText . fmap X.docContent $
+    X.parseXML "<texmath>" (TE.encodeUtf8 mathml)
   where
     displayType = \case
       B.InlineMath -> DisplayInline
       B.DisplayMath -> DisplayBlock
-
-fromElement :: XL.Element -> X.Node
-fromElement (XL.Element name attrs content _) =
-  X.Element
-    (toText $ XL.qName name)
-    (map fromAttr attrs)
-    (concatMap fromContent content)
-
-fromAttr :: XL.Attr -> (Text, Text)
-fromAttr (XL.Attr k v) = (toText $ XL.qName k, toText v)
-
-fromContent :: XL.Content -> [X.Node]
-fromContent = \case
-  XL.Elem e -> [fromElement e]
-  XL.Text cd -> [X.TextNode (toText $ XL.cdData cd)]
-  -- texmath's MathML writer emits Unicode directly, so this branch is
-  -- unreachable in practice. Preserve the entity literally rather than
-  -- silently dropping it, so any future regression is visible.
-  XL.CRef ref -> [X.TextNode $ "&" <> toText ref <> ";"]
