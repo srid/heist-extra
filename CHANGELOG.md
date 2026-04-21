@@ -1,9 +1,10 @@
 # Revision history for heist-extra
 
-## 0.5.0.0 (2025-12-18)
+## 0.5.0.0 (unreleased)
 
 - Add syntax highlighting for code blocks using skylighting (#10)
 - Remove prism.js `language-*` class hack (no longer needed with static highlighting)
+- Add static math rendering for `$...$` and `$$...$$` via `texmath` (LaTeX → MathML at build time)
 
 ## 0.4.0.0 (2025-08-19)
 

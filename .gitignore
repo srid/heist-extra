@@ -10,3 +10,6 @@ result-*
 
 # direnv
 .direnv
+
+# do-skill workflow artifact
+.do-results.json
