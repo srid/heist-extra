@@ -9,4 +9,4 @@ result
 result-*
 
 # direnv
-.direnv
+.direnv.do-results.json

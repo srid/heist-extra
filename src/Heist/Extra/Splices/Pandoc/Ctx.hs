@@ -34,6 +34,8 @@ data RenderCtx = RenderCtx
   , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
   , enableSyntaxHighlighting :: Bool
   -- ^ Enable syntax highlighting for code blocks using skylighting
+  , enableStaticMath :: Bool
+  -- ^ Enable static (build-time) math rendering to MathML via texmath
   }
 
 mkRenderCtx ::
@@ -46,8 +48,10 @@ mkRenderCtx ::
   (RenderCtx -> B.Inline -> Maybe (HI.Splice Identity)) ->
   -- | Enable syntax highlighting for code blocks
   Bool ->
+  -- | Enable static math rendering to MathML
+  Bool ->
   H.HeistT Identity m RenderCtx
-mkRenderCtx classMap bS iS enableHighlighting = do
+mkRenderCtx classMap bS iS enableHighlighting enableStatic = do
   node <- H.getParamNode
   let ctx =
         RenderCtx
@@ -58,11 +62,12 @@ mkRenderCtx classMap bS iS enableHighlighting = do
           (bS ctx)
           (iS ctx)
           enableHighlighting
+          enableStatic
    in pure ctx
 
 emptyRenderCtx :: RenderCtx
 emptyRenderCtx =
-  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) False
+  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) False False
 
 -- | Strip any custom splicing out of the given render context
 ctxSansCustomSplicing :: RenderCtx -> RenderCtx

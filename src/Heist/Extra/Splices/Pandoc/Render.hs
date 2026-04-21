@@ -20,6 +20,7 @@ import Heist.Extra.Splices.Pandoc.Ctx (
  )
 import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
+import Heist.Extra.Splices.Pandoc.Texmath (renderMath)
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
@@ -199,17 +200,24 @@ rpInline' ctx@RenderCtx {..} i = case i of
             one . X.TextNode $
               s
   B.Math mathType s ->
-    case mathType of
-      B.InlineMath ->
-        pure $
-          one . X.Element "span" [("class", "math inline")] $
-            one . X.TextNode $
-              "\\(" <> s <> "\\)"
-      B.DisplayMath ->
-        pure $
-          one . X.Element "span" [("class", "math display")] $
-            one . X.TextNode $
-              "$$" <> s <> "$$"
+    if enableStaticMath
+      then case renderMath mathType s of
+        Left err ->
+          pure $
+            one . X.Element "span" [("class", "math error")] $
+              [X.TextNode err, X.TextNode ": ", X.TextNode s]
+        Right nodes -> pure nodes
+      else case mathType of
+        B.InlineMath ->
+          pure $
+            one . X.Element "span" [("class", "math inline")] $
+              one . X.TextNode $
+                "\\(" <> s <> "\\)"
+        B.DisplayMath ->
+          pure $
+            one . X.Element "span" [("class", "math display")] $
+              one . X.TextNode $
+                "$$" <> s <> "$$"
   B.Link attr is (url, tit) -> do
     let attrs =
           catMaybes [Just ("href", url), guard (not $ T.null tit) >> pure ("title", tit)]
