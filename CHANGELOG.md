@@ -11,11 +11,15 @@
   on footnote refs and list items. Unprefixed rendering is unchanged;
   callers only need to act when they render multiple documents into a
   single page (e.g. note embedding) and want to namespace footnote IDs.
-- Re-export `renderPandocWith` so consumers can render a `Pandoc` doc
-  without emitting a trailing footnote list — required whenever a
-  custom block/inline splice nests another `pandocSplice` call, since
-  the outer one already gathers every `B.Note` in the AST and would
-  otherwise produce a duplicate footnote listing.
+- Add `pandocSpliceWithoutFootnoteList`: renders a `Pandoc` doc,
+  wires footnote refs, but does not emit the trailing `<ol>` of
+  footnote definitions. Intended for custom block renderers (e.g.
+  callout bodies) that are themselves invoked inside an outer
+  `pandocSplice` — the outer already emits the document-level list
+  via `gatherFootnotes`, so the nested render must not emit a second
+  copy.
+- Re-export `renderPandocWith` for callers that want to take over
+  footnote handling entirely.
 
 ## 0.4.0.0 (2025-08-19)
 
