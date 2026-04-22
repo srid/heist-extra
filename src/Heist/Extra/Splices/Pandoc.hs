@@ -1,6 +1,12 @@
 module Heist.Extra.Splices.Pandoc (
   RenderCtx (..),
   pandocSplice,
+  -- | Render a `Pandoc` doc /without/ emitting a trailing footnote
+  -- list. Intended for callers nested inside a `pandocSplice` — the
+  -- outer call already gathered every `B.Note` in the AST (including
+  -- inside this callee's input) and will render the document-level
+  -- footnote list, so the inner render must not emit its own copy.
+  renderPandocWith,
   -- | To delegate rendering of blocks and inlines from a custom splice.
   rpBlock,
   rpInline,
