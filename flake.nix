@@ -19,6 +19,7 @@
           packages = {
             pandoc-types.source = "1.23";
           };
+          devShell.tools = hp: { inherit (hp) hspec-discover; };
           autoWire = [ "packages" "checks" ];
         };
 

@@ -6,6 +6,9 @@ module Heist.Extra.Splices.Pandoc.Render (
   rpInline,
   rpBlock',
   rpInline',
+
+  -- * Internal helpers (exported for tests)
+  rawNode,
 ) where
 
 import Data.Map.Strict qualified as Map
