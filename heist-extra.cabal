@@ -105,3 +105,20 @@ library
     Heist.Extra.Splices.Pandoc.Texmath
     Heist.Extra.Splices.Tree
     Heist.Extra.TemplateState
+
+test-suite test
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Spec.hs
+  other-modules:      Heist.Extra.Splices.Pandoc.RenderSpec
+  default-language:   Haskell2010
+  default-extensions: ImportQualifiedPost OverloadedStrings
+  ghc-options:        -Wall
+  build-depends:
+    , base
+    , blaze-builder
+    , bytestring
+    , heist-extra
+    , hspec
+    , text
+    , xmlhtml

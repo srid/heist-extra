@@ -6,6 +6,9 @@ module Heist.Extra.Splices.Pandoc.Render (
   rpInline,
   rpBlock',
   rpInline',
+
+  -- * Internal helpers (exported for tests)
+  rawNode,
 ) where
 
 import Data.Map.Strict qualified as Map
@@ -296,11 +299,26 @@ rpTask ctx is default_ =
         ("inlines" ## rpInline ctx `foldMapM` taskInlines)
         default_
 
+{- | Wrap a raw HTML/inline blob in a Heist-internal element so xmlhtml's
+parser keeps the bytes opaque (via the @xmlhtmlRaw@ marker attribute) and
+the renderer emits them verbatim.
+
+The wrapper tag is a fixed @rawhtml@ regardless of caller intent: xmlhtml's
+@Render.hs:131-133@ check fires if a raw-text element's text content
+contains @</tagName@, so wrapping in @\<div\>@ blows up on any embedded
+HTML that includes a closing @\</div\>@ — most painfully, mermaid's SVG
+ships HTML labels inside @\<foreignObject\>@. A single dedicated tag
+name avoids the collision once and for all. @display: contents@ collapses
+the wrapper so it doesn't disturb the surrounding flow layout.
+-}
 rawNode :: Text -> Text -> [X.Node]
-rawNode wrapperTag s =
-  one . X.Element wrapperTag (one ("xmlhtmlRaw", "")) $
-    one . X.TextNode $
-      s
+rawNode _wrapperTag s =
+  one
+    . X.Element
+      "rawhtml"
+      [("xmlhtmlRaw", ""), ("style", "display: contents")]
+    $ one . X.TextNode
+    $ s
 
 -- | Emit raw LaTeX wrapped in a span for client-side rendering (KaTeX/MathJax).
 renderMathPassthrough :: B.MathType -> Text -> [X.Node]
