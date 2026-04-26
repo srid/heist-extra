@@ -120,5 +120,6 @@ test-suite test
     , bytestring
     , heist-extra
     , hspec
+    , pandoc-types
     , text
     , xmlhtml

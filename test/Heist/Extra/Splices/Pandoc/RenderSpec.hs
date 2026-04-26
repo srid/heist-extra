@@ -7,13 +7,20 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import Heist.Extra.Splices.Pandoc.Render (rawNode)
-import Prelude
+import Heist.Extra.Splices.Pandoc.Render (
+  alignmentStyle,
+  cellSpanAttrs,
+  colSpecsToColgroup,
+  rawNode,
+ )
 import Test.Hspec
+import Text.Pandoc.Definition qualified as B
 import Text.XmlHtml qualified as X
+import Prelude
 
--- | Force-render a node tree to bytes via xmlhtml's HTML5 fragment renderer.
--- Any `error` thrown by the renderer surfaces here.
+{- | Force-render a node tree to bytes via xmlhtml's HTML5 fragment renderer.
+ Any `error` thrown by the renderer surfaces here.
+-}
 renderHtml :: [X.Node] -> IO ByteString
 renderHtml = evaluate . toByteString . X.renderHtmlFragment X.UTF8
 
@@ -71,7 +78,51 @@ spec = do
       let body =
             "<svg xmlns=\"http://www.w3.org/2000/svg\">\
             \<foreignObject><div xmlns=\"http://www.w3.org/1999/xhtml\">\
-            \<span>label</span></div></foreignObject></svg>" :: Text
+            \<span>label</span></div></foreignObject></svg>" ::
+              Text
       out <- renderHtml (rawNode "div" body)
       out `shouldSatisfy` ("<foreignObject>" `BS.isInfixOf`)
       out `shouldSatisfy` ("</div>" `BS.isInfixOf`)
+
+  describe "alignmentStyle (srid/emanote#27)" $ do
+    it "maps the three explicit alignments to text-align styles" $ do
+      alignmentStyle B.AlignLeft `shouldBe` Just ("style", "text-align: left")
+      alignmentStyle B.AlignRight `shouldBe` Just ("style", "text-align: right")
+      alignmentStyle B.AlignCenter `shouldBe` Just ("style", "text-align: center")
+
+    it "drops AlignDefault entirely instead of emitting an empty style" $
+      alignmentStyle B.AlignDefault `shouldBe` Nothing
+
+  describe "colSpecsToColgroup (srid/emanote#27)" $ do
+    it "emits nothing when every column width is default" $ do
+      let specs = [(B.AlignLeft, B.ColWidthDefault), (B.AlignRight, B.ColWidthDefault)]
+      colSpecsToColgroup specs `shouldBe` mempty
+
+    it "emits a <colgroup> with width-bearing <col>s when any width is set" $ do
+      let specs = [(B.AlignDefault, B.ColWidth 0.25), (B.AlignDefault, B.ColWidth 0.75)]
+      out <- renderHtml (colSpecsToColgroup specs)
+      out `shouldSatisfy` ("<colgroup>" `BS.isInfixOf`)
+      out `shouldSatisfy` ("width: 25.00%" `BS.isInfixOf`)
+      out `shouldSatisfy` ("width: 75.00%" `BS.isInfixOf`)
+
+    it "emits a bare <col> for default-width columns mixed with sized ones" $ do
+      let specs = [(B.AlignDefault, B.ColWidth 0.5), (B.AlignDefault, B.ColWidthDefault)]
+      out <- renderHtml (colSpecsToColgroup specs)
+      out `shouldSatisfy` ("width: 50.00%" `BS.isInfixOf`)
+      -- xmlhtml self-closes the void <col> element. The default-width
+      -- column emits <col /> (no style attr).
+      out `shouldSatisfy` ("<col />" `BS.isInfixOf`)
+
+  describe "cellSpanAttrs (srid/emanote#27)" $ do
+    it "emits no attributes when both spans are 1 (HTML default)" $
+      cellSpanAttrs (B.RowSpan 1) (B.ColSpan 1) `shouldBe` []
+
+    it "emits rowspan only when the row span is greater than 1" $
+      cellSpanAttrs (B.RowSpan 3) (B.ColSpan 1) `shouldBe` [("rowspan", "3")]
+
+    it "emits colspan only when the column span is greater than 1" $
+      cellSpanAttrs (B.RowSpan 1) (B.ColSpan 2) `shouldBe` [("colspan", "2")]
+
+    it "emits both attrs when both spans are greater than 1" $
+      cellSpanAttrs (B.RowSpan 2) (B.ColSpan 4)
+        `shouldBe` [("rowspan", "2"), ("colspan", "4")]

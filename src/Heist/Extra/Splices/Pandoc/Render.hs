@@ -9,6 +9,9 @@ module Heist.Extra.Splices.Pandoc.Render (
 
   -- * Internal helpers (exported for tests)
   rawNode,
+  alignmentStyle,
+  colSpecsToColgroup,
+  cellSpanAttrs,
 ) where
 
 import Data.Map.Strict qualified as Map
@@ -28,6 +31,7 @@ import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
 import Heist.Extra.Splices.Pandoc.Texmath (renderMath)
 import Heist.Interpreted qualified as HI
+import Numeric (showFFloat)
 import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk as W
@@ -106,26 +110,37 @@ rpBlock' ctx@RenderCtx {..} b = case b of
         <$> innerSplice
   B.HorizontalRule ->
     withTplTag ctx "HorizontalRule" mempty (pure $ one $ X.Element "hr" mempty mempty)
-  B.Table attr _captions _colSpec (B.TableHead _ hrows) tbodys _tfoot -> do
+  B.Table attr _captions colSpecs (B.TableHead _ hrows) tbodys (B.TableFoot _ frows) -> do
     -- TODO: Move tailwind styles to pandoc.tpl
     let borderStyle = "border-gray-300"
-        rowStyle = [("class", "border-b-2 border-t-2 " <> borderStyle)]
-        cellStyle = [("class", "py-2 px-2 align-top border-r-2 border-l-2 " <> borderStyle)]
+        rowTwAttr = ("", ["border-b-2", "border-t-2", borderStyle], mempty)
+        cellTwAttr = ("", ["py-2", "px-2", "align-top", "border-r-2", "border-l-2", borderStyle], mempty)
         tableAttr = ("", ["mb-3"], mempty)
-    -- TODO: Apply captions, colSpec, etc.
+        colAligns = fst <$> colSpecs
+        colAlignAt i = case drop i colAligns of
+          a : _ -> a
+          [] -> B.AlignDefault
+        renderCell tag i (B.Cell cAttr cAlign rspan cspan blks) = do
+          let effectiveAlign = case cAlign of
+                B.AlignDefault -> colAlignAt i
+                a -> a
+              extraKVs = catMaybes [alignmentStyle effectiveAlign] <> cellSpanAttrs rspan cspan
+              merged = concatAttr (concatAttr cAttr cellTwAttr) ("", mempty, extraKVs)
+          one . X.Element tag (rpAttr merged) <$> foldMapM (rpBlock ctx) blks
+        renderRow tag (B.Row rAttr cells) = do
+          rendered <- fold <$> zipWithM (renderCell tag) [0 ..] cells
+          pure $ one $ X.Element "tr" (rpAttr (concatAttr rAttr rowTwAttr)) rendered
+        wrapSection tag cellTag rows
+          | null rows = pure mempty
+          | otherwise = one . X.Element tag mempty <$> foldMapM (renderRow cellTag) rows
     fmap (one . X.Element "table" (rpAttr $ concatAttr attr tableAttr)) $ do
-      thead <- fmap (one . X.Element "thead" mempty) $
-        flip foldMapM hrows $ \(B.Row _ cells) ->
-          fmap (one . X.Element "tr" rowStyle) $
-            flip foldMapM cells $ \(B.Cell _ _ _ _ blks) ->
-              one . X.Element "th" cellStyle <$> foldMapM (rpBlock ctx) blks
+      let cg = colSpecsToColgroup colSpecs
+      thead <- wrapSection "thead" "th" hrows
       tbody <- fmap (one . X.Element "tbody" mempty) $
         flip foldMapM tbodys $ \(B.TableBody _ _ _ rows) ->
-          flip foldMapM rows $ \(B.Row _ cells) ->
-            fmap (one . X.Element "tr" rowStyle) $
-              flip foldMapM cells $ \(B.Cell _ _ _ _ blks) ->
-                one . X.Element "td" cellStyle <$> foldMapM (rpBlock ctx) blks
-      pure $ thead <> tbody
+          foldMapM (renderRow "td") rows
+      tfoot <- wrapSection "tfoot" "td" frows
+      pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
     one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx attr)
       <$> foldMapM (rpBlock ctx) bs
@@ -328,6 +343,42 @@ renderMathPassthrough mathType s =
     (klass, wrapped) = case mathType of
       B.InlineMath -> ("math inline", "\\(" <> s <> "\\)")
       B.DisplayMath -> ("math display", "$$" <> s <> "$$")
+
+{- | Render the per-column @text-align@ inline style for a Pandoc
+ 'B.Alignment'. 'B.AlignDefault' yields 'Nothing' so the attribute is
+ omitted entirely instead of inheriting the user agent's default
+ explicitly.
+-}
+alignmentStyle :: B.Alignment -> Maybe (Text, Text)
+alignmentStyle = \case
+  B.AlignLeft -> Just ("style", "text-align: left")
+  B.AlignRight -> Just ("style", "text-align: right")
+  B.AlignCenter -> Just ("style", "text-align: center")
+  B.AlignDefault -> Nothing
+
+{- | Build a @\<colgroup\>@ from Pandoc 'B.ColSpec' widths. Returns an
+ empty list when every column width is 'B.ColWidthDefault' so we don't
+ emit a noise-only element.
+-}
+colSpecsToColgroup :: [B.ColSpec] -> [X.Node]
+colSpecsToColgroup specs
+  | all ((== B.ColWidthDefault) . snd) specs = mempty
+  | otherwise = one $ X.Element "colgroup" mempty (renderCol <$> specs)
+  where
+    renderCol (_, B.ColWidthDefault) = X.Element "col" mempty mempty
+    renderCol (_, B.ColWidth w) =
+      X.Element "col" [("style", "width: " <> percent w)] mempty
+    percent w = T.pack (showFFloat (Just 2) (w * 100) "") <> "%"
+
+{- | HTML @rowspan@ / @colspan@ attribute pairs for spans greater than 1.
+ Spans of 1 are the HTML default and are omitted.
+-}
+cellSpanAttrs :: B.RowSpan -> B.ColSpan -> [(Text, Text)]
+cellSpanAttrs (B.RowSpan rs) (B.ColSpan cs) =
+  catMaybes
+    [ guard (rs > 1) $> ("rowspan", show rs)
+    , guard (cs > 1) $> ("colspan", show cs)
+    ]
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text
