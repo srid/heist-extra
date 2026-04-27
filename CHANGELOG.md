@@ -6,6 +6,7 @@
 - Remove prism.js `language-*` class hack (no longer needed with static highlighting)
 - Add static math rendering for `$...$` and `$$...$$` via `texmath` (LaTeX → MathML at build time)
 - Wrap raw HTML/inline blobs in a unique `<rawhtml>` element (with `display: contents`) instead of `<div>`/`<span>` ([#13](https://github.com/srid/heist-extra/pull/13)). Avoids xmlhtml's "div cannot contain text looking like its end tag" crash when raw HTML contains a literal `</div>` — most painfully, mermaid SVG with `<foreignObject><div>…</div>` HTML labels. Fixes [srid/emanote#119](https://github.com/srid/emanote/issues/119).
+- Pandoc `Table` rendering now applies the AST fields it had been silently dropping ([#15](https://github.com/srid/heist-extra/pull/15)): per-column alignment from `ColSpec` (with cell-level `Alignment` overriding the column default), column widths via a generated `<colgroup>`, cell `RowSpan`/`ColSpan` as `rowspan`/`colspan` attributes, row & cell `Attr` merged into the rendered `<tr>`/`<th>`/`<td>`, and `TableFoot` rows rendered into `<tfoot>`. Captions are still skipped — commonmark-hs doesn't emit them. Pure helpers (`alignmentStyle`, `colSpecsToColgroup`, `cellSpanAttrs`, `cellColumnIndices`, `mergeStyleKVs`) live in the new `Heist.Extra.Splices.Pandoc.Render.Internal` module so consumers get a clean public API. Fixes [srid/emanote#27](https://github.com/srid/emanote/issues/27).
 
 ## 0.4.0.0 (2025-08-19)
 
