@@ -118,20 +118,14 @@ rpBlock' ctx@RenderCtx {..} b = case b of
         cellTwAttr = ("", ["py-2", "px-2", "align-top", "border-r-2", "border-l-2", borderStyle], mempty)
         tableAttr = ("", ["mb-3"], mempty)
         colAligns = fst <$> colSpecs
-        colAlignAt i = case drop i colAligns of
-          a : _ -> a
-          [] -> B.AlignDefault
         renderCell tag i (B.Cell cAttr cAlign rspan cspan blks) = do
           let effectiveAlign = case cAlign of
-                B.AlignDefault -> colAlignAt i
+                B.AlignDefault -> fromMaybe B.AlignDefault (colAligns !!? i)
                 a -> a
               extraKVs = catMaybes [alignmentStyle effectiveAlign] <> cellSpanAttrs rspan cspan
               merged = concatAttr (concatAttr cAttr cellTwAttr) ("", mempty, extraKVs)
           one . X.Element tag (rpAttr merged) <$> foldMapM (rpBlock ctx) blks
         renderRow tag (B.Row rAttr cells) = do
-          -- Cell *position* in the row and column *index* diverge as soon as
-          -- any cell has ColSpan > 1; resolving alignment by zip-position
-          -- would silently misfire across a merged cell.
           rendered <- fold <$> zipWithM (renderCell tag) (cellColumnIndices cells) cells
           pure $ one $ X.Element "tr" (rpAttr (concatAttr rAttr rowTwAttr)) rendered
         wrapSection tag cellTag rows
@@ -139,10 +133,9 @@ rpBlock' ctx@RenderCtx {..} b = case b of
           | otherwise = one . X.Element tag mempty <$> foldMapM (renderRow cellTag) rows
     fmap (one . X.Element "table" (rpAttr $ concatAttr attr tableAttr)) $ do
       let cg = colSpecsToColgroup colSpecs
+          bodyRows = concatMap (\(B.TableBody _ _ _ rs) -> rs) tbodys
       thead <- wrapSection "thead" "th" hrows
-      tbody <- fmap (one . X.Element "tbody" mempty) $
-        flip foldMapM tbodys $ \(B.TableBody _ _ _ rows) ->
-          foldMapM (renderRow "td") rows
+      tbody <- wrapSection "tbody" "td" bodyRows
       tfoot <- wrapSection "tfoot" "td" frows
       pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
@@ -348,10 +341,8 @@ renderMathPassthrough mathType s =
       B.InlineMath -> ("math inline", "\\(" <> s <> "\\)")
       B.DisplayMath -> ("math display", "$$" <> s <> "$$")
 
-{- | Render the per-column @text-align@ inline style for a Pandoc
- 'B.Alignment'. 'B.AlignDefault' yields 'Nothing' so the attribute is
- omitted entirely instead of inheriting the user agent's default
- explicitly.
+{- | 'B.AlignDefault' yields 'Nothing' so the attribute is omitted entirely
+ rather than emitting an inline style that re-asserts the user-agent default.
 -}
 alignmentStyle :: B.Alignment -> Maybe (Text, Text)
 alignmentStyle = \case
@@ -360,9 +351,8 @@ alignmentStyle = \case
   B.AlignCenter -> Just ("style", "text-align: center")
   B.AlignDefault -> Nothing
 
-{- | Build a @\<colgroup\>@ from Pandoc 'B.ColSpec' widths. Returns an
- empty list when every column width is 'B.ColWidthDefault' so we don't
- emit a noise-only element.
+{- | Returns the empty list when every width is 'B.ColWidthDefault' — a
+ @\<colgroup\>@ full of bare @\<col\>@s would just be HTML noise.
 -}
 colSpecsToColgroup :: [B.ColSpec] -> [X.Node]
 colSpecsToColgroup specs
@@ -374,9 +364,7 @@ colSpecsToColgroup specs
       X.Element "col" [("style", "width: " <> percent w)] mempty
     percent w = T.pack (showFFloat (Just 2) (w * 100) "") <> "%"
 
-{- | HTML @rowspan@ / @colspan@ attribute pairs for spans greater than 1.
- Spans of 1 are the HTML default and are omitted.
--}
+-- | Spans of 1 are the HTML default and are omitted to avoid noise.
 cellSpanAttrs :: B.RowSpan -> B.ColSpan -> [(Text, Text)]
 cellSpanAttrs (B.RowSpan rs) (B.ColSpan cs) =
   catMaybes
@@ -384,11 +372,9 @@ cellSpanAttrs (B.RowSpan rs) (B.ColSpan cs) =
     , guard (cs > 1) $> ("colspan", show cs)
     ]
 
-{- | The starting column index of every cell in a row, accounting for
- 'B.ColSpan'. A cell that spans /n/ columns occupies indices
- @[i .. i+n-1]@; the next cell starts at @i+n@. Resolving column
- alignment by simple list position would silently misalign cells
- whenever a row contains a merged cell.
+{- | A cell with @ColSpan n@ occupies indices @[i .. i+n-1]@, so the next
+ cell starts at @i+n@; zipping by list position would silently misalign
+ every cell after a merged one.
 -}
 cellColumnIndices :: [B.Cell] -> [Int]
 cellColumnIndices = go 0
