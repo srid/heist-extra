@@ -7,7 +7,7 @@ module Heist.Extra.Splices.Pandoc.Render (
   rpBlock',
   rpInline',
 
-  -- * Internal helpers (exported for tests)
+  -- * Exported for tests
   rawNode,
 ) where
 
@@ -23,6 +23,13 @@ import Heist.Extra.Splices.Pandoc.Ctx (
   RenderCtx (..),
   RenderFeatures (..),
   rewriteClass,
+ )
+import Heist.Extra.Splices.Pandoc.Render.Internal (
+  alignmentStyle,
+  cellColumnIndices,
+  cellSpanAttrs,
+  colSpecsToColgroup,
+  mergeStyleKVs,
  )
 import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
@@ -106,26 +113,37 @@ rpBlock' ctx@RenderCtx {..} b = case b of
         <$> innerSplice
   B.HorizontalRule ->
     withTplTag ctx "HorizontalRule" mempty (pure $ one $ X.Element "hr" mempty mempty)
-  B.Table attr _captions _colSpec (B.TableHead _ hrows) tbodys _tfoot -> do
+  B.Table attr _captions colSpecs (B.TableHead _ hrows) tbodys (B.TableFoot _ frows) -> do
     -- TODO: Move tailwind styles to pandoc.tpl
     let borderStyle = "border-gray-300"
-        rowStyle = [("class", "border-b-2 border-t-2 " <> borderStyle)]
-        cellStyle = [("class", "py-2 px-2 align-top border-r-2 border-l-2 " <> borderStyle)]
+        rowTwAttr = ("", ["border-b-2", "border-t-2", borderStyle], mempty)
+        cellTwAttr = ("", ["py-2", "px-2", "align-top", "border-r-2", "border-l-2", borderStyle], mempty)
         tableAttr = ("", ["mb-3"], mempty)
-    -- TODO: Apply captions, colSpec, etc.
+        colAligns = fst <$> colSpecs
+        renderCell tag i (B.Cell cAttr cAlign rspan cspan blks) = do
+          let effectiveAlign = case cAlign of
+                B.AlignDefault -> fromMaybe B.AlignDefault (colAligns !!? i)
+                a -> a
+              extraKVs = catMaybes [alignmentStyle effectiveAlign] <> cellSpanAttrs rspan cspan
+              -- A raw-HTML cell could carry its own `style`; concatAttr would
+              -- list-append, leaving two `style` attrs on one element (invalid
+              -- HTML; later browsers silently drop one). Consolidate via
+              -- semicolon join instead.
+              cellKVs = mergeStyleKVs (rpAttr (concatAttr cAttr cellTwAttr)) extraKVs
+          one . X.Element tag cellKVs <$> foldMapM (rpBlock ctx) blks
+        renderRow tag (B.Row rAttr cells) = do
+          rendered <- fold <$> zipWithM (renderCell tag) (cellColumnIndices cells) cells
+          pure $ one $ X.Element "tr" (rpAttr (concatAttr rAttr rowTwAttr)) rendered
+        wrapSection tag cellTag rows
+          | null rows = pure mempty
+          | otherwise = one . X.Element tag mempty <$> foldMapM (renderRow cellTag) rows
     fmap (one . X.Element "table" (rpAttr $ concatAttr attr tableAttr)) $ do
-      thead <- fmap (one . X.Element "thead" mempty) $
-        flip foldMapM hrows $ \(B.Row _ cells) ->
-          fmap (one . X.Element "tr" rowStyle) $
-            flip foldMapM cells $ \(B.Cell _ _ _ _ blks) ->
-              one . X.Element "th" cellStyle <$> foldMapM (rpBlock ctx) blks
-      tbody <- fmap (one . X.Element "tbody" mempty) $
-        flip foldMapM tbodys $ \(B.TableBody _ _ _ rows) ->
-          flip foldMapM rows $ \(B.Row _ cells) ->
-            fmap (one . X.Element "tr" rowStyle) $
-              flip foldMapM cells $ \(B.Cell _ _ _ _ blks) ->
-                one . X.Element "td" cellStyle <$> foldMapM (rpBlock ctx) blks
-      pure $ thead <> tbody
+      let cg = colSpecsToColgroup colSpecs
+          bodyRows = concatMap (\(B.TableBody _ _ _ rs) -> rs) tbodys
+      thead <- wrapSection "thead" "th" hrows
+      tbody <- wrapSection "tbody" "td" bodyRows
+      tfoot <- wrapSection "tfoot" "td" frows
+      pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
     one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx attr)
       <$> foldMapM (rpBlock ctx) bs
