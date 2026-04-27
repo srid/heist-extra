@@ -12,6 +12,7 @@ module Heist.Extra.Splices.Pandoc.Render (
   alignmentStyle,
   colSpecsToColgroup,
   cellSpanAttrs,
+  cellColumnIndices,
 ) where
 
 import Data.Map.Strict qualified as Map
@@ -128,7 +129,10 @@ rpBlock' ctx@RenderCtx {..} b = case b of
               merged = concatAttr (concatAttr cAttr cellTwAttr) ("", mempty, extraKVs)
           one . X.Element tag (rpAttr merged) <$> foldMapM (rpBlock ctx) blks
         renderRow tag (B.Row rAttr cells) = do
-          rendered <- fold <$> zipWithM (renderCell tag) [0 ..] cells
+          -- Cell *position* in the row and column *index* diverge as soon as
+          -- any cell has ColSpan > 1; resolving alignment by zip-position
+          -- would silently misfire across a merged cell.
+          rendered <- fold <$> zipWithM (renderCell tag) (cellColumnIndices cells) cells
           pure $ one $ X.Element "tr" (rpAttr (concatAttr rAttr rowTwAttr)) rendered
         wrapSection tag cellTag rows
           | null rows = pure mempty
@@ -379,6 +383,18 @@ cellSpanAttrs (B.RowSpan rs) (B.ColSpan cs) =
     [ guard (rs > 1) $> ("rowspan", show rs)
     , guard (cs > 1) $> ("colspan", show cs)
     ]
+
+{- | The starting column index of every cell in a row, accounting for
+ 'B.ColSpan'. A cell that spans /n/ columns occupies indices
+ @[i .. i+n-1]@; the next cell starts at @i+n@. Resolving column
+ alignment by simple list position would silently misalign cells
+ whenever a row contains a merged cell.
+-}
+cellColumnIndices :: [B.Cell] -> [Int]
+cellColumnIndices = go 0
+  where
+    go _ [] = []
+    go col (B.Cell _ _ _ (B.ColSpan cs) _ : rest) = col : go (col + cs) rest
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text
