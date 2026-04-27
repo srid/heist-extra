@@ -13,8 +13,10 @@ module Heist.Extra.Splices.Pandoc.Render (
   colSpecsToColgroup,
   cellSpanAttrs,
   cellColumnIndices,
+  mergeStyleKVs,
 ) where
 
+import Data.List (partition)
 import Data.Map.Strict qualified as Map
 import Data.Map.Syntax ((##))
 import Data.Text qualified as T
@@ -123,8 +125,12 @@ rpBlock' ctx@RenderCtx {..} b = case b of
                 B.AlignDefault -> fromMaybe B.AlignDefault (colAligns !!? i)
                 a -> a
               extraKVs = catMaybes [alignmentStyle effectiveAlign] <> cellSpanAttrs rspan cspan
-              merged = concatAttr (concatAttr cAttr cellTwAttr) ("", mempty, extraKVs)
-          one . X.Element tag (rpAttr merged) <$> foldMapM (rpBlock ctx) blks
+              -- A raw-HTML cell could carry its own `style`; concatAttr would
+              -- list-append, leaving two `style` attrs on one element (invalid
+              -- HTML; later browsers silently drop one). Consolidate via
+              -- semicolon join instead.
+              cellKVs = mergeStyleKVs (rpAttr (concatAttr cAttr cellTwAttr)) extraKVs
+          one . X.Element tag cellKVs <$> foldMapM (rpBlock ctx) blks
         renderRow tag (B.Row rAttr cells) = do
           rendered <- fold <$> zipWithM (renderCell tag) (cellColumnIndices cells) cells
           pure $ one $ X.Element "tr" (rpAttr (concatAttr rAttr rowTwAttr)) rendered
@@ -381,6 +387,20 @@ cellColumnIndices = go 0
   where
     go _ [] = []
     go col (B.Cell _ _ _ (B.ColSpan cs) _ : rest) = col : go (col + cs) rest
+
+{- | Append @right@ onto @left@, but consolidate any duplicate @style@ keys
+ into one entry joined with @"; "@. xmlhtml passes attributes through
+ verbatim, so two @style@ entries reach the browser as two attributes on
+ one element — invalid HTML, with the later value silently dropped by
+ most engines.
+-}
+mergeStyleKVs :: [(Text, Text)] -> [(Text, Text)] -> [(Text, Text)]
+mergeStyleKVs left right =
+  let (styles, rest) = partition ((== "style") . fst) (left <> right)
+   in case styles of
+        [] -> rest
+        [single] -> rest <> [single]
+        multiple -> rest <> [("style", T.intercalate "; " (snd <$> multiple))]
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text

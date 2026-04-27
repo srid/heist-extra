@@ -16,6 +16,7 @@ import Heist.Extra.Splices.Pandoc.Render (
   cellColumnIndices,
   cellSpanAttrs,
   colSpecsToColgroup,
+  mergeStyleKVs,
   rawNode,
   rpBlock,
  )
@@ -148,6 +149,30 @@ spec = do
 
     it "is empty for an empty row" $
       cellColumnIndices [] `shouldBe` []
+
+  describe "mergeStyleKVs (srid/emanote#27, regression)" $ do
+    it "passes a single style entry through unchanged" $
+      mergeStyleKVs [("style", "color: red")] []
+        `shouldBe` [("style", "color: red")]
+
+    it "preserves non-style entries verbatim and in order" $
+      mergeStyleKVs [("id", "x"), ("class", "c")] [("data-foo", "bar")]
+        `shouldBe` [("id", "x"), ("class", "c"), ("data-foo", "bar")]
+
+    it "joins two style entries with `; ` so the rendered HTML stays valid" $
+      mergeStyleKVs
+        [("style", "color: red")]
+        [("style", "text-align: left")]
+        `shouldBe` [("style", "color: red; text-align: left")]
+
+    it "joins three+ style entries from anywhere in the input" $
+      mergeStyleKVs
+        [("style", "a: 1"), ("class", "c"), ("style", "b: 2")]
+        [("style", "c: 3")]
+        `shouldBe` [("class", "c"), ("style", "a: 1; b: 2; c: 3")]
+
+    it "is the identity on empty inputs" $
+      mergeStyleKVs [] [] `shouldBe` []
 
   -- Integration: render real Pandoc Table values through `rpBlock` and
   -- assert the bytes that come out of xmlhtml. Covers every variant the
@@ -314,6 +339,22 @@ spec = do
         out <- renderBlockHtml hs tbl
         out `shouldSatisfy` ("id='cell-id'" `BS.isInfixOf`)
         out `shouldSatisfy` ("cell-class" `BS.isInfixOf`)
+
+      it "consolidates a cell-supplied `style` with the alignment style (no dup attr)" $ \hs -> do
+        -- Cell already carries a `style` (e.g. from raw HTML in the source);
+        -- column 0 is right-aligned, so the renderer adds another `style`.
+        -- The output must hold both values in a single attribute, not two.
+        let cell = B.Cell ("", [], [("style", "color: red")]) B.AlignDefault (B.RowSpan 1) (B.ColSpan 1) [PB.Plain [PB.Str "v"]]
+            tbl =
+              tableFromParts
+                [(B.AlignRight, B.ColWidthDefault)]
+                []
+                [[mkRow [cell]]]
+                []
+        out <- renderBlockHtml hs tbl
+        bsCount "style=" out `shouldBe` 1
+        out `shouldSatisfy` ("color: red" `BS.isInfixOf`)
+        out `shouldSatisfy` ("text-align: right" `BS.isInfixOf`)
 
 -- * Test helpers for the integration suite.
 
