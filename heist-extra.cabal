@@ -118,6 +118,7 @@ test-suite test
     , base
     , blaze-builder
     , bytestring
+    , heist
     , heist-extra
     , hspec
     , pandoc-types
