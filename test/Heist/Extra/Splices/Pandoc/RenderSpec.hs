@@ -155,7 +155,7 @@ spec = do
   beforeAll initEmptyHeistState $
     describe "rpBlock B.Table (srid/emanote#27, integration)" $ do
       it "renders a minimal one-cell table with header & body wrappers" $ \hs -> do
-        let tbl = simpleTable [(B.AlignDefault, B.ColWidthDefault)] [["H1"]] [[["v1"]]]
+        let tbl = simpleTable [(B.AlignDefault, B.ColWidthDefault)] [["H1"]] [["v1"]]
         out <- renderBlockHtml hs tbl
         out `shouldSatisfy` ("<table" `BS.isInfixOf`)
         out `shouldSatisfy` ("<thead" `BS.isInfixOf`)
@@ -177,7 +177,7 @@ spec = do
                 , (B.AlignRight, B.ColWidthDefault)
                 ]
                 [["L", "C", "R"]]
-                [[["a", "b", "c"]]]
+                [["a", "b", "c"]]
         out <- renderBlockHtml hs tbl
         bsCount "text-align: left" out `shouldBe` 2
         bsCount "text-align: center" out `shouldBe` 2
@@ -200,7 +200,7 @@ spec = do
               simpleTable
                 [(B.AlignDefault, B.ColWidth 0.3), (B.AlignDefault, B.ColWidth 0.7)]
                 [["H1", "H2"]]
-                [[["a"], ["b"]]]
+                [["a", "b"]]
         out <- renderBlockHtml hs tbl
         out `shouldSatisfy` ("<colgroup>" `BS.isInfixOf`)
         out `shouldSatisfy` ("width: 30.00%" `BS.isInfixOf`)
@@ -346,21 +346,18 @@ mkCell t = B.Cell B.nullAttr B.AlignDefault (B.RowSpan 1) (B.ColSpan 1) [PB.Plai
 mkRow :: [B.Cell] -> B.Row
 mkRow = B.Row B.nullAttr
 
-{- | A 'B.Table' built from plain text head / body / foot rows.
- One row per @[Text]@; each text becomes one default cell.
+{- | A 'B.Table' with plain-text rows. Each inner @[Text]@ is one row; each
+ text becomes one default cell. Single body — multi-body tables can use
+ 'tableFromParts'.
 -}
-simpleTable :: [B.ColSpec] -> [[Text]] -> [[[Text]]] -> B.Block
+simpleTable :: [B.ColSpec] -> [[Text]] -> [[Text]] -> B.Block
 simpleTable specs headRows bodyRows =
-  tableFromParts
-    specs
-    (textRow <$> headRows)
-    [textRow <$> rs | rs <- bodyRows]
-    []
+  tableFromParts specs (textRow <$> headRows) [textRow <$> bodyRows] []
   where
     textRow = mkRow . fmap mkCell
 
-{- | Same as 'simpleTable' but takes pre-built 'B.Row' values so callers
- can exercise rowspan, colspan, attrs, and per-cell alignment.
+{- | Like 'simpleTable' but with pre-built 'B.Row' values, so tests can
+ exercise rowspan, colspan, attrs, and per-cell alignment.
 -}
 tableFromParts ::
   [B.ColSpec] ->
