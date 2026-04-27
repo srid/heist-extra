@@ -12,13 +12,15 @@ import Data.Text.Encoding (encodeUtf8)
 import Heist qualified as H
 import Heist.Extra.Splices.Pandoc.Ctx (emptyRenderCtx)
 import Heist.Extra.Splices.Pandoc.Render (
+  rawNode,
+  rpBlock,
+ )
+import Heist.Extra.Splices.Pandoc.Render.Internal (
   alignmentStyle,
   cellColumnIndices,
   cellSpanAttrs,
   colSpecsToColgroup,
   mergeStyleKVs,
-  rawNode,
-  rpBlock,
  )
 import Test.Hspec
 import Text.Pandoc.Builder qualified as PB
