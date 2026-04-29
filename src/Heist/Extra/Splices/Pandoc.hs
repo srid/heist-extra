@@ -1,5 +1,17 @@
 module Heist.Extra.Splices.Pandoc (
-  RenderCtx (..),
+  -- | The render-context type and its public accessors. The data constructor
+  -- is intentionally hidden — use 'mkRenderCtx' / 'emptyRenderCtx' from
+  -- "Heist.Extra.Splices.Pandoc.Ctx" so future fields can be added without
+  -- breaking call sites.
+  RenderCtx,
+  rootNode,
+  bAttr,
+  iAttr,
+  classMap,
+  blockSplice,
+  inlineSplice,
+  renderFeatures,
+  userData,
   pandocSplice,
   -- | To delegate rendering of blocks and inlines from a custom splice.
   rpBlock,
@@ -7,8 +19,16 @@ module Heist.Extra.Splices.Pandoc (
 ) where
 
 import Heist.Extra.Splices.Pandoc.Ctx (
-  RenderCtx (..),
+  RenderCtx,
+  bAttr,
+  blockSplice,
+  classMap,
   concatSpliceFunc,
+  iAttr,
+  inlineSplice,
+  renderFeatures,
+  rootNode,
+  userData,
  )
 import Heist.Extra.Splices.Pandoc.Footnotes (
   footnoteRefSplice,

@@ -1,82 +1,60 @@
 {-# LANGUAGE RecordWildCards #-}
 
+{- | Public construction and manipulation API for 'RenderCtx'.
+
+The data constructor lives in "Heist.Extra.Splices.Pandoc.Ctx.Internal" and is
+deliberately not re-exported here: callers must go through 'mkRenderCtx' or
+'emptyRenderCtx' so that future fields added to the record can be absorbed by
+the smart constructor's defaults without breaking call sites.
+-}
 module Heist.Extra.Splices.Pandoc.Ctx (
-  RenderCtx (..),
+  -- * Type and field accessors
+  RenderCtx,
+  rootNode,
+  bAttr,
+  iAttr,
+  classMap,
+  blockSplice,
+  inlineSplice,
+  renderFeatures,
+  userData,
+
+  -- * Rendering features
   RenderFeatures (..),
   CodeBackend (..),
   MathBackend (..),
   defaultFeatures,
+
+  -- * Smart constructors
   mkRenderCtx,
   emptyRenderCtx,
+
+  -- * Typed user-data slot
   getUserData,
   setUserData,
+
+  -- * Other helpers
   rewriteClass,
   ctxSansCustomSplicing,
   concatSpliceFunc,
 ) where
 
-import Data.Dynamic (Dynamic, fromDynamic, toDyn)
+import Data.Dynamic (fromDynamic, toDyn)
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
 import Data.Typeable (Typeable)
 import Heist qualified as H
 import Heist.Extra.Splices.Pandoc.Attr (concatAttr)
+import Heist.Extra.Splices.Pandoc.Ctx.Internal (
+  CodeBackend (..),
+  MathBackend (..),
+  RenderCtx (..),
+  RenderFeatures (..),
+  defaultFeatures,
+ )
 import Heist.Interpreted qualified as HI
 import Text.Pandoc.Builder qualified as B
 import Text.XmlHtml qualified as X
-
--- | Backend for syntax-highlighting fenced code blocks.
-data CodeBackend
-  = -- | Emit code blocks unhighlighted; consumer wires client-side JS if desired.
-    NoHighlighting
-  | -- | Tokenize at build time via @skylighting@.
-    Skylighting
-  deriving stock (Eq, Show)
-
--- | Backend for rendering `$...$` / `$$...$$` math.
-data MathBackend
-  = -- | Emit raw delimiters for client-side JS (KaTeX, MathJax) to pick up.
-    NoStaticMath
-  | -- | Convert to MathML at build time via @texmath@.
-    StaticMathML
-  deriving stock (Eq, Show)
-
-{- | Which rendering features are active. Selecting a non-trivial backend
-per axis is independently extensible — adding a third math backend does
-not touch call sites for the code backend, and vice versa.
--}
-data RenderFeatures = RenderFeatures
-  { codeHighlighting :: CodeBackend
-  , mathRendering :: MathBackend
-  }
-  deriving stock (Eq, Show)
-
--- | Everything off — the historical default before either feature existed.
-defaultFeatures :: RenderFeatures
-defaultFeatures = RenderFeatures NoHighlighting NoStaticMath
-
-{- | The configuration context under which we must render a `Pandoc` document
- using the given Heist template.
--}
-data RenderCtx = RenderCtx
-  { -- The XML node which contains individual AST rendering definitions
-    -- This corresponds to pandoc.tpl
-    rootNode :: Maybe X.Node
-  , -- Attributes for a given AST node.
-    bAttr :: B.Block -> B.Attr
-  , iAttr :: B.Inline -> B.Attr
-  , -- Class attribute rewrite rules
-    classMap :: Map Text Text
-  , -- Custom render functions for AST nodes.
-    blockSplice :: B.Block -> Maybe (HI.Splice Identity)
-  , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
-  , renderFeatures :: RenderFeatures
-  , userData :: Dynamic
-  -- ^ Caller-defined per-render context. Lets a downstream library attach a
-  -- typed value (e.g. an embed-ancestor stack for cycle detection) without
-  -- requiring it to live on every renderer's signature. Default 'toDyn ()'.
-  -- Use 'getUserData' / 'setUserData' for type-safe access.
-  }
 
 mkRenderCtx ::
   (Monad m) =>
@@ -129,7 +107,7 @@ ctxSansCustomSplicing ctx =
     , inlineSplice = const Nothing
     }
 
-concatSpliceFunc :: Alternative f => (t -> f a) -> (t -> f a) -> t -> f a
+concatSpliceFunc :: (Alternative f) => (t -> f a) -> (t -> f a) -> t -> f a
 concatSpliceFunc f g x =
   asum
     [ f x
@@ -140,7 +118,7 @@ rewriteClass :: RenderCtx -> B.Attr -> B.Attr
 rewriteClass RenderCtx {..} (id', classes, attr) =
   (id', rewrite classMap <$> classes, attr)
   where
-    rewrite :: Ord a => Map a a -> a -> a
+    rewrite :: (Ord a) => Map a a -> a -> a
     rewrite rules x =
       fromMaybe x $ Map.lookup x rules
 
