@@ -23,15 +23,17 @@ import Heist.Extra.Splices.Pandoc.Ctx (
   RenderFeatures (..),
   rewriteClass,
  )
-import Heist.Extra.Splices.Pandoc.RawHtmlGroup (groupRawHtmlBlocks)
+import Heist.Extra.Splices.Pandoc.RawHtmlGroup (
+  divTag,
+  groupRawHtmlBlocks,
+  stripTagDirective,
+ )
 import Heist.Extra.Splices.Pandoc.Render.Internal (
   alignmentStyle,
   cellColumnIndices,
   cellSpanAttrs,
   colSpecsToColgroup,
-  divTag,
   mergeStyleKVs,
-  stripTagDirective,
  )
 import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
@@ -152,7 +154,7 @@ rpBlock' ctx@RenderCtx {..} b = case b of
       tfoot <- wrapSection "tfoot" "td" frows
       pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
-    one . X.Element (divTag "div" attr) (rpAttr $ rewriteClass ctx (stripTagDirective attr))
+    one . X.Element (divTag attr) (rpAttr $ rewriteClass ctx (stripTagDirective attr))
       <$> foldMapM (rpBlock ctx) bs
   B.Figure attr _caption bs ->
     -- TODO: support caption

@@ -9,15 +9,9 @@ module Heist.Extra.Splices.Pandoc.Render.Internal (
   cellSpanAttrs,
   cellColumnIndices,
   mergeStyleKVs,
-
-  -- * The @"tag"@ directive on 'B.Div'
-  tagDirectiveKey,
-  divTag,
-  stripTagDirective,
 ) where
 
 import Data.List (partition)
-import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
 import Numeric (showFFloat)
 import Text.Pandoc.Definition qualified as B
@@ -77,25 +71,3 @@ mergeStyleKVs left right =
         [] -> rest
         [single] -> rest <> [single]
         multiple -> rest <> [("style", T.intercalate "; " (snd <$> multiple))]
-
-{- | The single attribute key that callers (today: 'Heist.Extra.Splices.Pandoc.RawHtmlGroup')
-use as a directive on a 'B.Div' to override the rendered element name. The
-renderer reads it via 'divTag' and removes it via 'stripTagDirective' so
-the directive never leaks into serialised HTML as a literal @tag="…"@.
-A named constant rather than three string literals scattered across
-modules: future maintainers can grep one place.
--}
-tagDirectiveKey :: Text
-tagDirectiveKey = "tag"
-
-{- | Resolve the element name a 'B.Div' should render as: the directive value if
- present, else the supplied default.
--}
-divTag :: Text -> B.Attr -> Text
-divTag defaultTag (_, _, kvs) =
-  fromMaybe defaultTag (Map.lookup tagDirectiveKey (Map.fromList kvs))
-
--- | Drop the directive from a 'B.Attr' so it doesn't survive into rendered HTML.
-stripTagDirective :: B.Attr -> B.Attr
-stripTagDirective (i, cs, kvs) =
-  (i, cs, filter ((/= tagDirectiveKey) . fst) kvs)

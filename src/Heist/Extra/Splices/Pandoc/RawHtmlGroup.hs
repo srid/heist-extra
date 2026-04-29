@@ -59,11 +59,20 @@ arrangement of "Heist.Extra.Splices.Pandoc.Render.Internal".
 -}
 module Heist.Extra.Splices.Pandoc.RawHtmlGroup (
   groupRawHtmlBlocks,
+
+  -- * The @"tag"@ directive on 'B.Div'
+
+  -- | Wire format the pass produces and the renderer consumes. Owned here
+  -- (the producer) so a future change to the directive scheme starts at the
+  -- module that decides what shape to emit.
+  tagDirectiveKey,
+  divTag,
+  stripTagDirective,
 ) where
 
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
+import Data.List (lookup)
 import Data.Text qualified as T
-import Heist.Extra.Splices.Pandoc.Render.Internal (tagDirectiveKey)
 import Text.Pandoc.Definition qualified as B
 
 groupRawHtmlBlocks :: [B.Block] -> [B.Block]
@@ -119,6 +128,7 @@ means the opener is orphan at this level.
 splitAtMatchingCloser :: Text -> [B.Block] -> Maybe ([B.Block], [B.Block])
 splitAtMatchingCloser tag = go (1 :: Int) []
   where
+    -- Caller has already consumed the opener, so depth starts at 1.
     go _ _ [] = Nothing
     go depth acc (b : bs)
       | closerTag tag b =
@@ -129,3 +139,16 @@ splitAtMatchingCloser tag = go (1 :: Int) []
       , t == tag =
           go (depth + 1) (b : acc) bs
       | otherwise = go depth (b : acc) bs
+
+-- | Attribute key on 'B.Div' whose value overrides the rendered element name.
+tagDirectiveKey :: Text
+tagDirectiveKey = "tag"
+
+-- | Resolve the element name a 'B.Div' should render as, defaulting to @"div"@.
+divTag :: B.Attr -> Text
+divTag (_, _, kvs) = fromMaybe "div" (lookup tagDirectiveKey kvs)
+
+-- | Drop the directive from a 'B.Attr' so it doesn't survive into rendered HTML.
+stripTagDirective :: B.Attr -> B.Attr
+stripTagDirective (i, cs, kvs) =
+  (i, cs, filter ((/= tagDirectiveKey) . fst) kvs)
