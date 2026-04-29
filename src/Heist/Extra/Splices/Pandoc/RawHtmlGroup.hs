@@ -50,12 +50,9 @@ of the parsing logic across other modules.
 
 == Public surface
 
-The module is exposed in @heist-extra.cabal@ for downstream tests and
-ad-hoc tooling that wants to drive the same preprocessing without going
-through 'Heist.Extra.Splices.Pandoc.Render.renderPandocWith'. It is not
-covered by the library's stability guarantees; the API can change
-between minor versions without a deprecation cycle. Mirrors the
-arrangement of "Heist.Extra.Splices.Pandoc.Render.Internal".
+Exposed for tests and downstream tooling but not covered by the
+library's stability guarantees; the API can change between minor
+versions without a deprecation cycle.
 -}
 module Heist.Extra.Splices.Pandoc.RawHtmlGroup (
   groupRawHtmlBlocks,

@@ -344,7 +344,7 @@ spec = do
         out `shouldSatisfy` ("cell-class" `BS.isInfixOf`)
 
       it "drops the `tag` directive from the rendered Div's attributes" $ \hs -> do
-        -- `tag` is a directive picked up by getTag to override the element
+        -- `tag` is a directive picked up by divTag to override the element
         -- name; it must not survive into the rendered HTML as a literal
         -- @tag="…"@ attribute. Regression for the fix that landed alongside
         -- the RawHtmlGroup pass (srid/emanote#433).

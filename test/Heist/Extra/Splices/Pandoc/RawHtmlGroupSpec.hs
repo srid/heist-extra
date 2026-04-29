@@ -14,7 +14,6 @@ import Test.Hspec
 import Text.Pandoc.Definition qualified as B
 import Prelude
 
--- | Block helpers that keep the test cases readable.
 raw :: Text -> B.Block
 raw = B.RawBlock (B.Format "html")
 
