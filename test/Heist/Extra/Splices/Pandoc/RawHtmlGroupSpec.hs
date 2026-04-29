@@ -131,3 +131,9 @@ spec = describe "groupRawHtmlBlocks (srid/emanote#433)" $ do
     -- An <aside> open with only a </details> downstream stays open.
     let input = [raw "<aside>\n", para "x", raw "</details>\n"]
     groupRawHtmlBlocks input `shouldBe` input
+
+  it "rejects a malformed closer that is missing its '>'" $ do
+    -- @\</details@ with no @\>@ must not be treated as a valid closer.
+    -- Mirrors the opener's @T.stripPrefix \">\"@ guard.
+    let input = [raw "<details>\n", para "x", raw "</details\n"]
+    groupRawHtmlBlocks input `shouldBe` input

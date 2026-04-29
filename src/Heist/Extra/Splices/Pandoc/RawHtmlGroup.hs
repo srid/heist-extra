@@ -83,8 +83,11 @@ closerTag tag = \case
   B.RawBlock (B.Format "html") s -> case T.stripPrefix "</" (T.strip s) of
     Just rest ->
       let (name, after) = T.span isTagNameChar rest
-          afterClose = T.drop 1 (T.dropWhile (/= '>') after)
-       in T.toLower name == tag && T.all isSpace afterClose
+          -- Mirror 'parseOpener': require an explicit @\>@ rather than
+          -- silently skipping a missing one via @T.drop 1@. Without this,
+          -- a malformed @\</details@ (no @\>@) would still match.
+          afterClose = T.stripPrefix ">" (T.dropWhile (/= '>') after)
+       in T.toLower name == tag && maybe False (T.all isSpace) afterClose
     Nothing -> False
   _ -> False
 
