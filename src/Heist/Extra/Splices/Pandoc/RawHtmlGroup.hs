@@ -79,38 +79,35 @@ groupRawHtmlBlocks = \case
 -- | Read @b@ as an opening raw-HTML tag, returning the (lowercased) tag name.
 openerTag :: B.Block -> Maybe Text
 openerTag = \case
-  B.RawBlock (B.Format "html") s -> parseOpener (T.strip s)
+  B.RawBlock (B.Format "html") s -> do
+    name <- parseTagAfterPrefix "<" s
+    -- Reject self-closing forms (@\<br /\>@): if the body between name and
+    -- '>' ends in '/', it's a void-element shorthand, not an opener.
+    let inside = T.takeWhile (/= '>') (T.drop (T.length name + 1) (T.strip s))
+    guard $ not ("/" `T.isSuffixOf` T.stripEnd inside)
+    pure name
   _ -> Nothing
-  where
-    parseOpener s = do
-      afterLT <- T.stripPrefix "<" s
-      guard $ not ("/" `T.isPrefixOf` afterLT)
-      let (name, rest) = T.span isTagNameChar afterLT
-      guard $ not (T.null name)
-      -- Reject self-closing forms (@\<br /\>@): the last non-space char
-      -- before '>' is '/'.
-      let inside = T.takeWhile (/= '>') rest
-      guard $ not ("/" `T.isSuffixOf` T.stripEnd inside)
-      -- The opener must be the only thing on this raw block; if anything
-      -- non-whitespace follows the '>', we're looking at a single-block
-      -- balanced fragment and must not group it.
-      afterGT <- T.stripPrefix ">" (T.dropWhile (/= '>') rest)
-      guard $ T.all isSpace afterGT
-      pure $ T.toLower name
 
 -- | Read @b@ as a closing tag for @tag@.
 closerTag :: Text -> B.Block -> Bool
 closerTag tag = \case
-  B.RawBlock (B.Format "html") s -> case T.stripPrefix "</" (T.strip s) of
-    Just rest ->
-      let (name, after) = T.span isTagNameChar rest
-          -- Mirror 'parseOpener': require an explicit @\>@ rather than
-          -- silently skipping a missing one via @T.drop 1@. Without this,
-          -- a malformed @\</details@ (no @\>@) would still match.
-          afterClose = T.stripPrefix ">" (T.dropWhile (/= '>') after)
-       in T.toLower name == tag && maybe False (T.all isSpace) afterClose
-    Nothing -> False
+  B.RawBlock (B.Format "html") s -> parseTagAfterPrefix "</" s == Just tag
   _ -> False
+
+{- | Shared parser for the bare-tag wire format both opener and closer follow:
+@PREFIX@ + tag-name chars + optional attribute body + @\>@, with whitespace
+the only thing allowed past the closing @\>@. Returns the lowercased tag
+name, or 'Nothing' if any guard fails (no @\>@, malformed name, content
+past the @\>@).
+-}
+parseTagAfterPrefix :: Text -> Text -> Maybe Text
+parseTagAfterPrefix prefix s = do
+  body <- T.stripPrefix prefix (T.strip s)
+  let (name, rest) = T.span isTagNameChar body
+  guard $ not (T.null name)
+  afterGT <- T.stripPrefix ">" (T.dropWhile (/= '>') rest)
+  guard $ T.all isSpace afterGT
+  pure $ T.toLower name
 
 isTagNameChar :: Char -> Bool
 isTagNameChar c = isAsciiLower c || isAsciiUpper c || isDigit c || c == '-'
