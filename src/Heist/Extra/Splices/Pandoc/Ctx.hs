@@ -8,13 +8,17 @@ module Heist.Extra.Splices.Pandoc.Ctx (
   defaultFeatures,
   mkRenderCtx,
   emptyRenderCtx,
+  getUserData,
+  setUserData,
   rewriteClass,
   ctxSansCustomSplicing,
   concatSpliceFunc,
 ) where
 
+import Data.Dynamic (Dynamic, fromDynamic, toDyn)
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
+import Data.Typeable (Typeable)
 import Heist qualified as H
 import Heist.Extra.Splices.Pandoc.Attr (concatAttr)
 import Heist.Interpreted qualified as HI
@@ -67,6 +71,11 @@ data RenderCtx = RenderCtx
     blockSplice :: B.Block -> Maybe (HI.Splice Identity)
   , inlineSplice :: B.Inline -> Maybe (HI.Splice Identity)
   , renderFeatures :: RenderFeatures
+  , userData :: Dynamic
+  -- ^ Caller-defined per-render context. Lets a downstream library attach a
+  -- typed value (e.g. an embed-ancestor stack for cycle detection) without
+  -- requiring it to live on every renderer's signature. Default 'toDyn ()'.
+  -- Use 'getUserData' / 'setUserData' for type-safe access.
   }
 
 mkRenderCtx ::
@@ -91,11 +100,26 @@ mkRenderCtx classMap bS iS features = do
           (bS ctx)
           (iS ctx)
           features
+          (toDyn ())
    in pure ctx
 
 emptyRenderCtx :: RenderCtx
 emptyRenderCtx =
-  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) defaultFeatures
+  RenderCtx Nothing (const B.nullAttr) (const B.nullAttr) mempty (const Nothing) (const Nothing) defaultFeatures (toDyn ())
+
+{- | Read a typed value from the ctx's 'userData' slot.
+
+Returns 'Nothing' when the slot was never set or holds a value of a different
+type. Callers that depend on the slot existing should treat 'Nothing' as the
+identity-of-this-type default (e.g. an empty stack), not as an error — heist
+itself never inspects 'userData'.
+-}
+getUserData :: forall a. (Typeable a) => RenderCtx -> Maybe a
+getUserData = fromDynamic . userData
+
+-- | Replace the ctx's 'userData' slot with a new typed value.
+setUserData :: forall a. (Typeable a) => a -> RenderCtx -> RenderCtx
+setUserData x ctx = ctx {userData = toDyn x}
 
 -- | Strip any custom splicing out of the given render context
 ctxSansCustomSplicing :: RenderCtx -> RenderCtx
