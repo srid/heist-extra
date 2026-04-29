@@ -16,7 +16,7 @@ import Prelude
 
 -- | Block helpers that keep the test cases readable.
 raw :: Text -> B.Block
-raw s = B.RawBlock (B.Format "html") s
+raw = B.RawBlock (B.Format "html")
 
 para :: Text -> B.Block
 para s = B.Para [B.Str s]

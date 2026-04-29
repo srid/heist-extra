@@ -41,7 +41,7 @@ module Heist.Extra.Splices.Pandoc.RawHtmlGroup (
   groupRawHtmlBlocks,
 ) where
 
-import Data.Char (isSpace)
+import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
 import Data.Text qualified as T
 import Text.Pandoc.Definition qualified as B
 
@@ -89,11 +89,7 @@ closerTag tag = \case
   _ -> False
 
 isTagNameChar :: Char -> Bool
-isTagNameChar c =
-  (c >= 'a' && c <= 'z')
-    || (c >= 'A' && c <= 'Z')
-    || (c >= '0' && c <= '9')
-    || c == '-'
+isTagNameChar c = isAsciiLower c || isAsciiUpper c || isDigit c || c == '-'
 
 {- | Walk forward, tracking nesting depth of @tag@. On the matching closer
 (depth back to zero) split into the inner span and the remainder. 'Nothing'
