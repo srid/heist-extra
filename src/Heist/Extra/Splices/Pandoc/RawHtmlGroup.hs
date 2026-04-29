@@ -43,6 +43,7 @@ module Heist.Extra.Splices.Pandoc.RawHtmlGroup (
 
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
 import Data.Text qualified as T
+import Heist.Extra.Splices.Pandoc.Render.Internal (tagDirectiveKey)
 import Text.Pandoc.Definition qualified as B
 
 groupRawHtmlBlocks :: [B.Block] -> [B.Block]
@@ -51,7 +52,7 @@ groupRawHtmlBlocks = \case
   b : rest
     | Just tag <- openerTag b
     , Just (inner, after) <- splitAtMatchingCloser tag rest ->
-        B.Div ("", [], [("tag", tag)]) (groupRawHtmlBlocks inner)
+        B.Div ("", [], [(tagDirectiveKey, tag)]) (groupRawHtmlBlocks inner)
           : groupRawHtmlBlocks after
     | otherwise -> b : groupRawHtmlBlocks rest
 

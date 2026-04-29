@@ -11,7 +11,6 @@ module Heist.Extra.Splices.Pandoc.Render (
   rawNode,
 ) where
 
-import Data.Map.Strict qualified as Map
 import Data.Map.Syntax ((##))
 import Data.Text qualified as T
 import Heist qualified as H
@@ -30,7 +29,9 @@ import Heist.Extra.Splices.Pandoc.Render.Internal (
   cellColumnIndices,
   cellSpanAttrs,
   colSpecsToColgroup,
+  divTag,
   mergeStyleKVs,
+  stripTagDirective,
  )
 import Heist.Extra.Splices.Pandoc.Skylighting (highlightCode)
 import Heist.Extra.Splices.Pandoc.TaskList qualified as TaskList
@@ -151,20 +152,12 @@ rpBlock' ctx@RenderCtx {..} b = case b of
       tfoot <- wrapSection "tfoot" "td" frows
       pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
-    one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx (dropTagAttr attr))
+    one . X.Element (divTag "div" attr) (rpAttr $ rewriteClass ctx (stripTagDirective attr))
       <$> foldMapM (rpBlock ctx) bs
   B.Figure attr _caption bs ->
     -- TODO: support caption
     one . X.Element "figure" (rpAttr attr) <$> foldMapM (rpBlock ctx) bs
   where
-    getTag defaultTag (_, _, Map.fromList -> attrs) =
-      Map.lookup "tag" attrs & fromMaybe defaultTag
-
-    -- The "tag" entry is a directive picked up by 'getTag' to override the
-    -- element name; it must not survive into the rendered HTML as a literal
-    -- @tag="…"@ attribute.
-    dropTagAttr (i, cs, kvs) = (i, cs, filter ((/= "tag") . fst) kvs)
-
     headerSplices headerId innerSplice = do
       "header:id" ## HI.textSplice headerId
       "inlines" ## innerSplice
