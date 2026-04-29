@@ -13,6 +13,7 @@ import Heist qualified as H
 import Heist.Extra.Splices.Pandoc.Ctx (emptyRenderCtx)
 import Heist.Extra.Splices.Pandoc.Render (
   rawNode,
+  renderPandocWith,
   rpBlock,
  )
 import Heist.Extra.Splices.Pandoc.Render.Internal (
@@ -342,6 +343,17 @@ spec = do
         out `shouldSatisfy` ("id='cell-id'" `BS.isInfixOf`)
         out `shouldSatisfy` ("cell-class" `BS.isInfixOf`)
 
+      it "drops the `tag` directive from the rendered Div's attributes" $ \hs -> do
+        -- `tag` is a directive picked up by divTag to override the element
+        -- name; it must not survive into the rendered HTML as a literal
+        -- @tag="…"@ attribute. Regression for the fix that landed alongside
+        -- the RawHtmlGroup pass (srid/emanote#433).
+        let div_ = B.Div ("", [], [("tag", "details"), ("data-keep", "yes")]) [B.Para [B.Str "x"]]
+        out <- renderBlockHtml hs div_
+        out `shouldSatisfy` ("<details" `BS.isInfixOf`)
+        out `shouldSatisfy` (not . ("tag=" `BS.isInfixOf`))
+        out `shouldSatisfy` ("data-keep=" `BS.isInfixOf`)
+
       it "consolidates a cell-supplied `style` with the alignment style (no dup attr)" $ \hs -> do
         -- Cell already carries a `style` (e.g. from raw HTML in the source);
         -- column 0 is right-aligned, so the renderer adds another `style`.
@@ -357,6 +369,38 @@ spec = do
         bsCount "style=" out `shouldBe` 1
         out `shouldSatisfy` ("color: red" `BS.isInfixOf`)
         out `shouldSatisfy` ("text-align: right" `BS.isInfixOf`)
+
+  -- End-to-end: drive renderPandocWith with the AST `Emanote.Model.Note.parseNoteMarkdown`
+  -- prints from the issue's reproducer, and assert the bytes that come out
+  -- of xmlhtml's fragment renderer. Without the RawHtmlGroup pass the
+  -- markdown paragraph would be a sibling of an empty `<details>`.
+  beforeAll initEmptyHeistState $
+    describe "renderPandocWith (srid/emanote#433, integration)" $ do
+      it "nests the markdown paragraph inside the <details> element" $ \hs -> do
+        let doc =
+              B.Pandoc
+                mempty
+                [ B.Para [B.Str "aaaa"]
+                , B.RawBlock (B.Format "html") "<details>\n"
+                , B.Para
+                    [ B.Strong [B.Str "bbb"]
+                    , B.Space
+                    , B.Str "ccc"
+                    , B.Space
+                    , B.Emph [B.Str "ddd"]
+                    ]
+                , B.RawBlock (B.Format "html") "</details>\n"
+                , B.Para [B.Str "eee"]
+                ]
+            nodes = runIdentity $ H.evalHeistT (renderPandocWith emptyRenderCtx doc) (X.TextNode "") hs
+        out <- renderHtml nodes
+        -- The whole point: the inner paragraph sits between <details> and
+        -- </details>, with no <rawhtml> wrapper around either tag.
+        out `shouldSatisfy` ("<details><p>" `BS.isInfixOf`)
+        out `shouldSatisfy` ("</p></details>" `BS.isInfixOf`)
+        out `shouldSatisfy` (not . ("rawhtml" `BS.isInfixOf`))
+        out `shouldSatisfy` ("<strong>bbb</strong>" `BS.isInfixOf`)
+        out `shouldSatisfy` ("<em>ddd</em>" `BS.isInfixOf`)
 
 -- * Test helpers for the integration suite.
 

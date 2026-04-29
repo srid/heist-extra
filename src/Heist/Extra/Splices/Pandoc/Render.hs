@@ -11,7 +11,6 @@ module Heist.Extra.Splices.Pandoc.Render (
   rawNode,
 ) where
 
-import Data.Map.Strict qualified as Map
 import Data.Map.Syntax ((##))
 import Data.Text qualified as T
 import Heist qualified as H
@@ -23,6 +22,11 @@ import Heist.Extra.Splices.Pandoc.Ctx.Internal (
   MathBackend (..),
   RenderCtx (..),
   RenderFeatures (..),
+ )
+import Heist.Extra.Splices.Pandoc.RawHtmlGroup (
+  divTag,
+  groupRawHtmlBlocks,
+  stripTagDirective,
  )
 import Heist.Extra.Splices.Pandoc.Render.Internal (
   alignmentStyle,
@@ -40,9 +44,14 @@ import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk as W
 import Text.XmlHtml qualified as X
 
+-- | Pre-group orphan opener/closer raw-HTML pairs at every block-list level.
+preprocess :: Pandoc -> Pandoc
+preprocess = W.walk groupRawHtmlBlocks
+
 renderPandocWith :: RenderCtx -> Pandoc -> HI.Splice Identity
-renderPandocWith ctx (Pandoc _meta blocks) =
-  foldMapM (rpBlock ctx) blocks
+renderPandocWith ctx doc =
+  let Pandoc _meta blocks = preprocess doc
+   in foldMapM (rpBlock ctx) blocks
 
 rpBlock :: RenderCtx -> B.Block -> HI.Splice Identity
 rpBlock ctx@RenderCtx {..} b = do
@@ -145,15 +154,12 @@ rpBlock' ctx@RenderCtx {..} b = case b of
       tfoot <- wrapSection "tfoot" "td" frows
       pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
-    one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx attr)
+    one . X.Element (divTag attr) (rpAttr $ rewriteClass ctx (stripTagDirective attr))
       <$> foldMapM (rpBlock ctx) bs
   B.Figure attr _caption bs ->
     -- TODO: support caption
     one . X.Element "figure" (rpAttr attr) <$> foldMapM (rpBlock ctx) bs
   where
-    getTag defaultTag (_, _, Map.fromList -> attrs) =
-      Map.lookup "tag" attrs & fromMaybe defaultTag
-
     headerSplices headerId innerSplice = do
       "header:id" ## HI.textSplice headerId
       "inlines" ## innerSplice
