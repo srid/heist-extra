@@ -24,6 +24,7 @@ import Heist.Extra.Splices.Pandoc.Ctx (
   RenderFeatures (..),
   rewriteClass,
  )
+import Heist.Extra.Splices.Pandoc.RawHtmlGroup (groupRawHtmlBlocks)
 import Heist.Extra.Splices.Pandoc.Render.Internal (
   alignmentStyle,
   cellColumnIndices,
@@ -40,9 +41,14 @@ import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk as W
 import Text.XmlHtml qualified as X
 
+-- | Pre-group orphan opener/closer raw-HTML pairs at every block-list level.
+preprocess :: Pandoc -> Pandoc
+preprocess = W.walk groupRawHtmlBlocks
+
 renderPandocWith :: RenderCtx -> Pandoc -> HI.Splice Identity
-renderPandocWith ctx (Pandoc _meta blocks) =
-  foldMapM (rpBlock ctx) blocks
+renderPandocWith ctx doc =
+  let Pandoc _meta blocks = preprocess doc
+   in foldMapM (rpBlock ctx) blocks
 
 rpBlock :: RenderCtx -> B.Block -> HI.Splice Identity
 rpBlock ctx@RenderCtx {..} b = do
@@ -145,7 +151,7 @@ rpBlock' ctx@RenderCtx {..} b = case b of
       tfoot <- wrapSection "tfoot" "td" frows
       pure $ cg <> thead <> tbody <> tfoot
   B.Div attr bs ->
-    one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx attr)
+    one . X.Element (getTag "div" attr) (rpAttr $ rewriteClass ctx (dropTagAttr attr))
       <$> foldMapM (rpBlock ctx) bs
   B.Figure attr _caption bs ->
     -- TODO: support caption
@@ -153,6 +159,11 @@ rpBlock' ctx@RenderCtx {..} b = case b of
   where
     getTag defaultTag (_, _, Map.fromList -> attrs) =
       Map.lookup "tag" attrs & fromMaybe defaultTag
+
+    -- The "tag" entry is a directive picked up by 'getTag' to override the
+    -- element name; it must not survive into the rendered HTML as a literal
+    -- @tag="…"@ attribute.
+    dropTagAttr (i, cs, kvs) = (i, cs, filter ((/= "tag") . fst) kvs)
 
     headerSplices headerId innerSplice = do
       "header:id" ## HI.textSplice headerId
