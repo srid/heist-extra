@@ -1,12 +1,5 @@
-{- | Internal-use record definition for 'Heist.Extra.Splices.Pandoc.Ctx'.
-
-The data constructor is exported here for in-package modules (notably
-'Heist.Extra.Splices.Pandoc.Render', which pattern-matches with
-@RecordWildCards@). Public callers should construct via 'mkRenderCtx' or
-'emptyRenderCtx' from "Heist.Extra.Splices.Pandoc.Ctx" so that future
-additions to this record (extra rendering features, user-data slots, …) can
-be absorbed by the smart constructor's defaults instead of breaking every
-positional construction site.
+{- | Internal record definition; the public API and its rationale live in
+ "Heist.Extra.Splices.Pandoc.Ctx". Import at your own risk.
 -}
 module Heist.Extra.Splices.Pandoc.Ctx.Internal (
   RenderCtx (..),

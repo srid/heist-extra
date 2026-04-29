@@ -46,6 +46,5 @@ spec = describe "userData slot" $ do
           emptyRenderCtx
             & setUserData (EmbedStack [1])
             & setUserData (OtherTag 42)
-    -- The earlier 'EmbedStack' is gone; the new 'OtherTag' is what's stored.
     getUserData @EmbedStack ctx `shouldBe` Nothing
     getUserData @OtherTag ctx `shouldBe` Just (OtherTag 42)

@@ -95,7 +95,14 @@ itself never inspects 'userData'.
 getUserData :: forall a. (Typeable a) => RenderCtx -> Maybe a
 getUserData = fromDynamic . userData
 
--- | Replace the ctx's 'userData' slot with a new typed value.
+{- | Replace the ctx's 'userData' slot with a new typed value.
+
+Single-slot semantics — a second 'setUserData' call overwrites the prior
+value regardless of type. If a downstream ever needs multiple unrelated
+typed payloads to coexist, the right migration is @vault@ (a typed-key
+heterogeneous map); a wrapper record around the two values is the right
+shape if they're semantically related.
+-}
 setUserData :: forall a. (Typeable a) => a -> RenderCtx -> RenderCtx
 setUserData x ctx = ctx {userData = toDyn x}
 
