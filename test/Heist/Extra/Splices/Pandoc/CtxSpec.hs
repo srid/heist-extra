@@ -5,6 +5,7 @@
 -}
 module Heist.Extra.Splices.Pandoc.CtxSpec (spec) where
 
+import Data.Function ((&))
 import Heist.Extra.Splices.Pandoc.Ctx (
   emptyRenderCtx,
   getUserData,
@@ -48,5 +49,3 @@ spec = describe "userData slot" $ do
     -- The earlier 'EmbedStack' is gone; the new 'OtherTag' is what's stored.
     getUserData @EmbedStack ctx `shouldBe` Nothing
     getUserData @OtherTag ctx `shouldBe` Just (OtherTag 42)
-  where
-    (&) = flip ($)
