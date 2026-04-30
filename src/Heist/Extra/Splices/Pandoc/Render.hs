@@ -16,12 +16,12 @@ import Data.Text qualified as T
 import Heist qualified as H
 import Heist.Extra (runCustomNode)
 import Heist.Extra.Splices.Pandoc.Attr (concatAttr, rpAttr)
-import Heist.Extra.Splices.Pandoc.Ctx (
+import Heist.Extra.Splices.Pandoc.Ctx (rewriteClass)
+import Heist.Extra.Splices.Pandoc.Ctx.Internal (
   CodeBackend (..),
   MathBackend (..),
   RenderCtx (..),
   RenderFeatures (..),
-  rewriteClass,
  )
 import Heist.Extra.Splices.Pandoc.RawHtmlGroup (
   divTag,
